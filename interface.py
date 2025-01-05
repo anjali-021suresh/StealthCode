@@ -139,7 +139,7 @@ received_box = RoundedTextBox(root, 50, 430, 500, 150, 20, "#2b2b2b", "#3c3f41",
 ImagePlaceholder(root, 600, 140, 450, 450, "#3c3f41")
 
 # logo with Faster One font
-logo_with_custom_font(root, "STEALTHCODE", r"FasterOne-Regular.ttf", 48, "#2b2b2b")
+logo_with_custom_font(root, "STEALTHCODE", r"assets/FasterOne-Regular.ttf", 48, "#2b2b2b")
 
 # Canvas for the button
 Label(root, text=f"Send Message", bg="#2b2b2b", fg="#ffffff", font=("Helvetica", 14)).place(x=360, y=333)
