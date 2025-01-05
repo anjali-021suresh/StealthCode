@@ -61,7 +61,7 @@ def login():
     if username == "admin" and password == "password":  # Replace with actual validation
         messagebox.showinfo("Login Successful", f"Welcome, {username}!")
         root.destroy()
-        os.system("python project.py")  #interface directory
+        os.system("python interface.py")  #interface directory
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
 
@@ -73,7 +73,7 @@ root.geometry("1100x700")
 root.configure(bg="#2b2b2b")  
 
 # Custom font path
-font_path = r"FasterOne-Regular.ttf"
+font_path = r"assets/FasterOne-Regular.ttf"
 
 # Render the logo
 logo_with_custom_font(root, "STEALTHCODE", font_path, 72, "#2b2b2b", "#ffffff")
@@ -83,7 +83,7 @@ login_frame = Frame(root, bg="#3c3f41", bd=0, relief=RAISED)
 login_frame.place(relx=0.5, rely=0.55, anchor="center", width=450, height=450)
 
 # Add a profile icon
-icon_path = r"profile_icon.png"  
+icon_path = r"assets/profile_icon.png"  
 try:
     profile_img = Image.open(icon_path).resize((90, 90), Image.LANCZOS)
     profile_photo = ImageTk.PhotoImage(profile_img)
