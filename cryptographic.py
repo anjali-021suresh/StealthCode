@@ -43,6 +43,9 @@ class CryptographicFunctions:
 
         """
         Prepares the actual key for encrpytion and decrption converting key size compatable to ChaCha20-Poly1305
+
+        Args: 
+            self: 
         
         """
 
@@ -56,6 +59,14 @@ class CryptographicFunctions:
 
 
     def encrypt_msg(self):
+
+        """
+        Encrypts the message using the main key derived from the shared secret key
+
+        Args: 
+            self:
+        """
+
         # if self.encryption_key is None:
         #     raise ValueError("Encryption key has not been derived yet.")
         self.mainkey = self.key_prep()
@@ -64,6 +75,16 @@ class CryptographicFunctions:
 
     def decryption_message(self, ciphertext, transmission_key, tag):
         # recieves private key, performs key computation
+
+        """
+        Decrypts the message using the transmission key
+        
+        Args: 
+            ciphertext: text which is obtained after the stegnographic decoding
+            transmission_key: key transmitted to the reciever to generate shared secret key
+            tag: nonce value to check authenticity and integrity
+
+        """
 
         shared_secret_key = self.kem.decap_secret(transmission_key)
         mainkey = HKDF(
