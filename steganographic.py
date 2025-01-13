@@ -2,15 +2,29 @@ import cv2
 import numpy as np
 
 
-def calculate_edge_strength(image_array):
-    """Calculate edge strength using a Sobel filter."""
+def calculate_edge_strength(image_array:np):
+    """
+    Calculate edge strength using a Sobel filter.
+
+    Args: 
+        image_array: numpy array of the image.
+    """
     gradient_x = cv2.Sobel(image_array, cv2.CV_64F, 1, 0, ksize=3)
     gradient_y = cv2.Sobel(image_array, cv2.CV_64F, 0, 1, ksize=3)
     return np.sqrt(gradient_x**2 + gradient_y**2)
 
 
-def embed_data_adaptive(image_path, encrypted_message, output_path):
-    """Embed secret data in a color image using Adaptive LSB Steganography."""
+def embed_data_adaptive(image_path:str, encrypted_message:bytes, output_path:str):
+    """
+    Embed secret data in a color image using Adaptive LSB Steganography.
+    
+    Args:
+        image_path: path of the image where data to be embedded.
+        encrypted_message: the message to be embedded.
+        output_path: image path where to save the image.
+
+
+    """
     # Load image in RGB (BGR in OpenCV)
     image = cv2.imread(image_path)
     if image is None:
@@ -69,8 +83,12 @@ def embed_data_adaptive(image_path, encrypted_message, output_path):
     print(f"Data embedded successfully in {output_path}")
 
 
-def extract_data_adaptive(stego_image_path):
-    """Extract secret data from a color stego image."""
+def extract_data_adaptive(stego_image_path:str):
+    """
+    Extract secret data from a color stego image.
+    Args:
+        stego_image_path: saved image path.
+    """
     # Load stego image in RGB (BGR in OpenCV)
     image = cv2.imread(stego_image_path)
     if image is None:
