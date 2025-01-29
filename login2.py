@@ -6,6 +6,7 @@ import subprocess
 import shlex
 import vpn_networking
 import sys
+import user_selection
 
 def logo_with_custom_font(master, text, font_path, size, bg_color, fg_color):
     """Render the logo text with a custom font using Pillow."""
@@ -76,15 +77,21 @@ def login():
 
         # Improved subprocess handling
         try:
-            result = subprocess.run(
-                shlex.split(f"python3 user_selection.py --users \"{users_arg}\" --current-user \"{username}\""),
-                capture_output=True, text=True, check=True
-            )
-            print("Subprocess Output:", result.stdout)
+            # result = subprocess.run(
+            #     shlex.split(f"python3 user_selection.py --users \"{users_arg}\" --current-user \"{username}\""),
+            #     capture_output=True, text=True, check=True
+            # )
+            # print("Subprocess Output:", result.stdout)
+            inint = user_selection.StealthCodeApp(users, username)
+            inint.run()
+
+
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Subprocess Error", f"Failed to launch user_selection.py:\n{e.stderr}")
         except Exception as e:
             messagebox.showerror("Unexpected Error", str(e))
+
+    
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
 
