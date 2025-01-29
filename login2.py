@@ -1,3 +1,4 @@
+# final login with improved core dump failure
 from tkinter import *
 from tkinter import messagebox
 from PIL import Image, ImageTk, ImageFont, ImageDraw
@@ -5,7 +6,6 @@ import subprocess
 import shlex
 import vpn_networking
 import sys
-
 
 def logo_with_custom_font(master, text, font_path, size, bg_color, fg_color):
     """Render the logo text with a custom font using Pillow."""
@@ -28,7 +28,6 @@ def logo_with_custom_font(master, text, font_path, size, bg_color, fg_color):
     logo_label = Label(master, image=logo_img, bg=bg_color)
     logo_label.image = logo_img
     logo_label.place(relx=0.5, rely=0.15, anchor="center")
-
 
 def create_rounded_rectangle(canvas, x1, y1, x2, y2, radius=25, **kwargs):
     """Draw a rounded rectangle on a Tkinter Canvas."""
@@ -56,53 +55,73 @@ def create_rounded_rectangle(canvas, x1, y1, x2, y2, radius=25, **kwargs):
     ]
     return canvas.create_polygon(points, smooth=True, **kwargs)
 
-
 def login():
     """Handle login action."""
     username = username_entry.get().strip()
     password = password_entry.get().strip()
 
-    if not username and not password:
+    if not username or not password:
         messagebox.showerror("Input Error", "Username and password cannot be empty.")
         return 
-    
-    print("Entering to networking")
+
+    print("Entering networking")
     users = vpn_networking.send_auth_details(username, password)
-    print("Exiting to networking")
+    print("Exiting networking")
 
     if users:
         messagebox.showinfo("Login Successful", f"Welcome, {username}!")
         root.destroy()
 
-        # Serialize users list as a single string argument
         users_arg = ",".join(users)
-        print(users_arg)
 
-        # Call user_selection.py with the list of users as an argument
+        # Improved subprocess handling
         try:
-            subprocess.Popen(
-                shlex.split(f"python3 user_selection.py --users \"{users_arg}\" --current-user \"{username}\"")
+            result = subprocess.run(
+                shlex.split(f"python3 user_selection.py --users \"{users_arg}\" --current-user \"{username}\""),
+                capture_output=True, text=True, check=True
             )
+            print("Subprocess Output:", result.stdout)
+        except subprocess.CalledProcessError as e:
+            messagebox.showerror("Subprocess Error", f"Failed to launch user_selection.py:\n{e.stderr}")
         except Exception as e:
-            messagebox.showerror("Subprocess Error", f"Failed to launch user_selection.py: {e}")
-
+            messagebox.showerror("Unexpected Error", str(e))
     else:
         messagebox.showerror("Login Failed", "Invalid username or password.")
 
 
-    # if username == "admin" and password == "password":  # Replace with actual validation
-    #     messagebox.showinfo("Login Successful", f"Welcome, {username}!")
-    #     root.destroy()
-    #     os.system("python interface.py")  #interface directory
-    # else:
-    #     messagebox.showerror("Login Failed", "Invalid username or password.")
+def on_button_click(event):
+    login()
 
+def on_button_hover(event):
+    login_button_canvas.itemconfig(button_id, fill="#365adf")
+
+def on_button_leave(event):
+    login_button_canvas.itemconfig(button_id, fill="#4a73ff")
+
+def on_close():
+    """Handle the closing of the root window."""
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+        try:
+            # Terminate any running subprocesses
+            for process in list(subprocess._active):
+                try:
+                    process.terminate()
+                except Exception as e:
+                    print(f"Error terminating process: {e}")
+
+            # Destroy the root window
+            root.destroy()
+
+            # Ensure clean exit
+            sys.exit(0)
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
 
 # Main window setup
 root = Tk()
 root.title("Login Page")
 root.geometry("1100x700")
-root.configure(bg="#2b2b2b")  
+root.configure(bg="#2b2b2b")
 
 # Custom font path
 font_path = r"assets/FasterOne-Regular.ttf"
@@ -150,45 +169,8 @@ login_button_canvas.place(x=125, y=350)
 button_id = create_rounded_rectangle(login_button_canvas, 0, 0, 200, 50, radius=25, fill="#4a73ff", outline="")
 login_button_canvas.create_text(100, 25, text="Login", font=("Helvetica", 12, "bold"), fill="#ffffff")
 
-
-def on_button_click(event):
-    login()
-
-
-def on_button_hover(event):
-    login_button_canvas.itemconfig(button_id, fill="#365adf")
-
-
-def on_button_leave(event):
-    login_button_canvas.itemconfig(button_id, fill="#4a73ff")
-
-
-def on_close():
-    """Handle the closing of the root window."""
-    if messagebox.askokcancel("Quit", "Do you want to quit?"):
-        try:
-            # Terminate any running subprocesses
-            for process in subprocess._active:
-                try:
-                    process.terminate()
-                except Exception as e:
-                    print(f"Error terminating process: {e}")
-
-            # Destroy the root window
-            root.destroy()
-
-            # Exit the program
-            sys.exit()
-        except Exception as e:
-            print(f"Error during shutdown: {e}")
-    # also close the wireguard connection important
-
-root.protocol("WM_DELETE_WINDOW", on_close)
-
-
 # Bind hover and click events to the button
 login_button_canvas.tag_bind(button_id, "<Button-1>", on_button_click)
 login_button_canvas.tag_bind(button_id, "<Enter>", on_button_hover)
-login_button_canvas.tag_bind(button_id, "<Leave>", on_button_leave)
 
 root.mainloop()

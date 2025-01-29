@@ -12,6 +12,7 @@ class CryptographicFunctions:
         self.privatekey = None
         self.ciphertext = None # transmission
         self.payload = None
+        self.plaintext = None
         self.shared_secret_key = None
         self.transmission_key = None # transmission
         self.tag = None # transmission
