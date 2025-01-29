@@ -60,13 +60,18 @@ def public_key_registery():
     if not receiver_name:
         return jsonify({"status": "failure", "message": "receiver name is required"}), 400
     
-    connection = sqlite3.connect(DB_FILE)
+    # Connect to the correct database (public_key.db)
+    connection = sqlite3.connect(PUBLIC_KEY_REGISTERY)  # Use PUBLIC_KEY_REGISTERY here
     cursor = connection.cursor()
     cursor.execute("SELECT public_key FROM public_key WHERE username = ?", (receiver_name,))
     result = cursor.fetchone() # fetches one row
-    reciever_public_key = result[0]
 
-    return jsonify({'status': 'success', 'reciever_public_key': reciever_public_key}), 200
+    if result:
+        reciever_public_key = result[0]
+        return jsonify({'status': 'success', 'reciever_public_key': reciever_public_key}), 200
+    else:
+        return jsonify({'status': 'failure', 'message': 'Receiver not found'}), 404
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
