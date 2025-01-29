@@ -63,7 +63,7 @@ class StealthCodeApp:
         ImagePlaceholder(self.root, 600, 140, 450, 450, "#3c3f41")
 
         # Set up the custom logo
-        logo_with_custom_font(self.root, "STEALTHCODE", r"assets/FasterOne-Regular.ttf", 48, "#2b2b2b")
+        logo_with_custom_font(self.root, "STEALTHCODE", "assets/FasterOne-Regular.ttf", 48, "#2b2b2b")
 
         Label(self.root, text=f"Message to user: {self.receiver_username}", bg="#2b2b2b", fg="#ffffff", font=("Krona One", 14)).place(x=55, y=140)
         Label(self.root, text=f"Message from user: {self.receiver_username}", bg="#2b2b2b", fg="#ffffff", font=("Krona One", 14)).place(x=55, y=400)
@@ -263,9 +263,14 @@ def logo_with_custom_font(master, text, font_path, size, bg_color="#2b2b2b", tex
 
     # Convert the image to a format usable by Tkinter
     logo_img = ImageTk.PhotoImage(image)
-    logo_label = Label(master, image=logo_img, bg=bg_color)
-    logo_label.image = logo_img  # Keep a reference to avoid garbage collection
+
+    # Store a reference to prevent garbage collection
+    master.logo_img = logo_img  # Attach to master window
+
+    logo_label = Label(master, image=master.logo_img, bg=bg_color)
+    logo_label.image = master.logo_img  # Keep a reference
     logo_label.place(relx=0.5, rely=0.1, anchor="center")
+
 
 
 

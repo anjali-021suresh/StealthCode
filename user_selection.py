@@ -9,6 +9,7 @@ import argparse
 import os
 import sys
 import interface2
+import shutil
 
 
 class StealthCodeApp:
@@ -139,6 +140,7 @@ class StealthCodeApp:
 
                 if self.SELECTED_WG0_CONF:
                     try:
+                        self.root.destroy()
                         init = interface2.StealthCodeApp(self.current_user, receiver_name, receiver_ip)
                         init.run()  # Start the second app
                     except subprocess.CalledProcessError as e:
@@ -164,6 +166,7 @@ class StealthCodeApp:
                     justify="center",
                     fg="green"
                 )
+                
                 confirm_button.config(state="normal")  # Enable the confirm button
             else:
                 selected_file_label.config(text="No valid file selected. Please try again.", fg="red")
@@ -172,6 +175,9 @@ class StealthCodeApp:
             """Confirm the file selection and close the dialog."""
             if self.SELECTED_WG0_CONF:
                 dialog.destroy()
+                shutil.move(self.SELECTED_WG0_CONF, "/etc/wireguard/wg0.conf")
+                print(f"File moved to {"/etc/wireguard/wg0.conf"}")
+                vpn_networking.vpn_server_connection()
             else:
                 messagebox.showwarning("File Required", "You must select a valid file to proceed!")
 
