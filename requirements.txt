@@ -1,0 +1,7 @@
+cv2
+cryptography
+watchdog
+json
+tkinter
+shlex
+socket

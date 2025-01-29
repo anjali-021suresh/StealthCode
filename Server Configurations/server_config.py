@@ -88,14 +88,14 @@ def public_key_db(client_name, public_key):
     connection = sqlite3.connect("public_key.db")
     cursor = connection.cursor()
 
-    cursor.execute("""CREATE TABLE IF NOT EXISTS public_keys_registery(
+    cursor.execute("""CREATE TABLE IF NOT EXISTS public_key(
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 username TEXT UNIQUE NOT NULL,
                                 public_key TEXT UNIQUE NOT NULL
                             );
                             """)
     
-    cursor.execute("""INSERT INTO public_keys_registery 
+    cursor.execute("""INSERT INTO public_key 
                    (username, public_key) VALUES 
                    (?, ?);
                     """, (client_name, public_key))
@@ -262,4 +262,5 @@ if __name__ == '__main__':
     server_side_vpn_config()
     # 3> User Setups and configurations as per no of avilable ips and users.
     users_setup()
+
 
