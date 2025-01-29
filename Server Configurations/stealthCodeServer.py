@@ -62,7 +62,7 @@ def public_key_registery():
     
     connection = sqlite3.connect(DB_FILE)
     cursor = connection.cursor()
-    cursor.execute("SELECT public_key FROM public_keys_registery WHERE username = ?", (receiver_name,))
+    cursor.execute("SELECT public_key FROM public_key WHERE username = ?", (receiver_name,))
     result = cursor.fetchone() # fetches one row
     reciever_public_key = result[0]
 
