@@ -137,10 +137,10 @@ def get_public_key(receiver_username:str):
         response.raise_for_status()  # Raise an exception for HTTP errors
         
         # Process the response
-        receiver_public_key = response.json().get("receiver_public_key")
+        receiver_public_key = response.json().get("receiver_pub_key")
         if receiver_public_key:
             print("Receiver Found!")
-            print("Receiver Static IP:", receiver_public_key)
+            print("Receiver public key found:", receiver_public_key)
             return receiver_public_key
         else:
             print("Receiver public key not found or unexpected response format.")

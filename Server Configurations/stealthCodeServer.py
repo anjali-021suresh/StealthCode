@@ -68,7 +68,7 @@ def public_key_registery():
 
     if result:
         reciever_public_key = result[0]
-        return jsonify({'status': 'success', 'reciever_public_key': reciever_public_key}), 200
+        return jsonify({'status': 'success', 'receiver_pub_key': reciever_public_key}), 200
     else:
         return jsonify({'status': 'failure', 'message': 'Receiver not found'}), 404
 
