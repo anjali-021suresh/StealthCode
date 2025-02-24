@@ -1,41 +1,42 @@
-import socket
 import os
+import socket
 import threading
 import netifaces
 import requests
 import subprocess
-
-
+from datetime import datetime
 
 # URL for the Flask server
-url = "http://34.60.27.56:5000"
-
-
+URL = "http://34.60.27.56:5000"
+LISTENING_PORT = 5001
+BUFFER_SIZE = 4096
 
 def vpn_server_connection():
+    """Connect to the VPN server using WireGuard."""
     print("[DEBUG] Checking if wg0.conf exists...")
-    if os.path.exists("/etc/wireguard/wg0.conf"):
-        print("[DEBUG] Config file exists. Attempting to bring up WireGuard...")
-        result = subprocess.run(
-            ["sudo", "wg-quick", "up", "/etc/wireguard/wg0.conf"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True
-        )
-        print("[DEBUG] Output:", result.stdout)
-        print("[DEBUG] Errors:", result.stderr)
-        if result.returncode == 0:
-            print("[DEBUG] WireGuard started successfully.")
-            return True
-        else:
-            print("[ERROR] Failed to start WireGuard.")
-            return False
-    else:
+    if not os.path.exists("/etc/wireguard/wg0.conf"):
         print("[ERROR] Config file not found.")
         return False
 
+    print("[DEBUG] Config file exists. Attempting to bring up WireGuard...")
+    result = subprocess.run(
+        ["sudo", "wg-quick", "up", "/etc/wireguard/wg0.conf"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    print("[DEBUG] Output:", result.stdout)
+    print("[DEBUG] Errors:", result.stderr)
+
+    if result.returncode == 0:
+        print("[DEBUG] WireGuard started successfully.")
+        return True
+    else:
+        print("[ERROR] Failed to start WireGuard.")
+        return False
 
 def vpn_server_disconnection():
+    """Disconnect from the VPN server."""
     try:
         result = subprocess.run(
             ["sudo", "wg-quick", "down", "/etc/wireguard/wg0.conf"],
@@ -52,8 +53,8 @@ def vpn_server_disconnection():
     except Exception as e:
         print(f"[ERROR] An unexpected error occurred: {e}")
 
-
 def get_wireguard_ip(interface="wg0"):
+    """Retrieve the IP address of the WireGuard interface."""
     try:
         addrs = netifaces.ifaddresses(interface)
         ip_info = addrs[netifaces.AF_INET][0]  # Get IPv4 address
@@ -61,32 +62,17 @@ def get_wireguard_ip(interface="wg0"):
     except KeyError:
         return f"Interface {interface} not found or has no IP!"
 
-
-LISTENING_PORT = 5001
-BUFFER_SIZE = 1024
-
-
-
-def send_auth_details(username:str, password:str):
-
+def send_auth_details(username: str, password: str):
     """Send authentication details to the server."""
-
-    print("Ready to Send")
-
     data = {"username": username, "password": password}
-    auth_server_url = f"{url}/auth"
+    auth_server_url = f"{URL}/auth"
 
     try:
         response = requests.post(auth_server_url, json=data)
-        print("try1")
         response.raise_for_status()  # Raise exception for HTTP error codes
-        print("try2")
         print("Authentication Successful!")
-        print("try3")
         print("Available Users:", response.json()["users"])
-        print("try4")
-        return response.json()["users"].split(", ") # this will return a list of users
-        print("try5")
+        return response.json()["users"].split(", ")  # Return a list of users
     except requests.exceptions.RequestException as e:
         print("Authentication Failed! Error:", str(e))
         return None  # Return None for any failure
@@ -94,20 +80,14 @@ def send_auth_details(username:str, password:str):
         print("Unexpected response format from server.")
         return None
 
-def user_ip_retrival(receiver_username:str):
-
-    global url;
+def user_ip_retrieval(receiver_username: str):
+    """Retrieve the IP address of the receiver."""
     data = {"receiver_name": receiver_username}
-    # Sending the request
-    user_ip_server_url = f"{url}/receiver_selection"
-    # response = requests.post(url, json=data)
+    user_ip_server_url = f"{URL}/receiver_selection"
 
     try:
-        # Sending the request
         response = requests.post(user_ip_server_url, json=data)
         response.raise_for_status()  # Raise an exception for HTTP errors
-        
-        # Process the response
         receiver_static_ip = response.json().get("receiver_static_ip")
         if receiver_static_ip:
             print("Receiver Found!")
@@ -123,20 +103,14 @@ def user_ip_retrival(receiver_username:str):
         print("Unexpected response format from server.")
         return None
 
-def get_public_key(receiver_username:str):
-
-    global url;
+def get_public_key(receiver_username: str):
+    """Retrieve the public key of the receiver."""
     data = {"receiver_name": receiver_username}
-    # Sending the request
-    public_key_url = f"{url}/public_key"
-    # response = requests.post(url, json=data)
+    public_key_url = f"{URL}/public_key"
 
     try:
-        # Sending the request
         response = requests.post(public_key_url, json=data)
         response.raise_for_status()  # Raise an exception for HTTP errors
-        
-        # Process the response
         receiver_public_key = response.json().get("receiver_pub_key")
         if receiver_public_key:
             print("Receiver Found!")
@@ -146,8 +120,105 @@ def get_public_key(receiver_username:str):
             print("Receiver public key not found or unexpected response format.")
             return None
     except requests.exceptions.RequestException as e:
-        print(f"Receiver public key retreval Failed! Error: {e}")
+        print(f"Receiver public key retrieval Failed! Error: {e}")
         return None
     except KeyError:
         print("Unexpected response format from server.")
         return None
+
+class Networking:
+    """Handles file transfer over the network."""
+
+    def __init__(self):
+        self.LISTEN_PORT = LISTENING_PORT
+        self.HOST_IP = "10.10.0.2"  # Bind to all available interfaces
+        self.BUFFER_SIZE = BUFFER_SIZE
+        self.SAVE_PATH = "received_files"  # Directory to save received files
+        self.server_socket = None
+        self.is_running = False
+
+    def start_server(self):
+        """Start the file transfer server."""
+        print("[*] Starting server...")
+        try:
+            os.makedirs(self.SAVE_PATH, exist_ok=True)
+            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_socket.bind((self.HOST_IP, self.LISTEN_PORT))
+            self.server_socket.listen(5)
+            self.is_running = True
+            print(f"[*] Server listening on {self.HOST_IP}:{self.LISTEN_PORT}")
+
+            while self.is_running:
+                try:
+                    conn, addr = self.server_socket.accept()
+                    print(f"[+] Connection established with {addr}")
+                    self.handle_client(conn)
+                except socket.error as e:
+                    if self.is_running:
+                        print(f"[-] Server error: {e}")
+        except Exception as e:
+            print(f"[-] Failed to start server: {e}")
+        finally:
+            self.stop_server()
+
+    def handle_client(self, conn):
+        """Handle incoming client connections."""
+        try:
+            file_name = conn.recv(self.BUFFER_SIZE).decode("utf-8")
+            print(f"[+] Receiving file: {file_name}")
+
+            file_type = os.path.splitext(file_name)[1].lower()
+            if file_type == ".json":
+                location_path = f"/tmp/{file_name}"
+                with open(location_path, "wb") as file:
+                    while True:
+                        data = conn.recv(self.BUFFER_SIZE)
+                        if not data:
+                            break
+                        file.write(data)
+            else:
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                save_path = os.path.join(self.SAVE_PATH, f"{timestamp}_{file_name}")
+                with open(save_path, "wb") as file:
+                    while True:
+                        data = conn.recv(self.BUFFER_SIZE)
+                        if not data:
+                            break
+                        file.write(data)
+
+            print(f"[+] File received successfully: {save_path}")
+        except Exception as e:
+            print(f"[-] Error receiving file: {e}")
+        finally:
+            conn.close()
+
+    def stop_server(self):
+        """Stop the file transfer server."""
+        print("[*] Stopping server...")
+        self.is_running = False
+        if self.server_socket:
+            self.server_socket.close()
+            self.server_socket = None
+        print("[*] Server stopped.")
+
+    def send_file(self, file_path, dest_ip):
+        """Send a file to the specified destination IP."""
+        if not os.path.isfile(file_path):
+            print(f"[-] File not found: {file_path}")
+            return
+
+        file_name = os.path.basename(file_path)
+        print(f"[*] Connecting to server at {dest_ip}:{self.LISTEN_PORT}")
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
+                client_socket.connect((dest_ip, self.LISTEN_PORT))
+                print("[+] Connected to server")
+
+                client_socket.send(file_name.encode("utf-8"))
+                with open(file_path, "rb") as file:
+                    while chunk := file.read(self.BUFFER_SIZE):
+                        client_socket.send(chunk)
+
+                print(f"[+] File {file_name} sent successfully!")
+        except Exception as e:
+            print(f"[-] Error sending file: {e}")

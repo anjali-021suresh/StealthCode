@@ -21,19 +21,16 @@ class StealthCodeApp:
         self.ip_address = ip_address
         self.file_path = None
 
-
         # Initialize core components
         self.stealthCodeEngine = Engine()
         self.networking = Networking()
-    
 
         # Start the networking server in a separate thread
         self.start_networking_thread()
 
         # Directory monitoring
         self.monitored_dir = "received_files"
-        if not os.path.exists(self.monitored_dir):
-            os.makedirs(self.monitored_dir, exist_ok=True)
+        os.makedirs(self.monitored_dir, exist_ok=True)
         self.dir_monitor = DirectoryMonitor(self.monitored_dir, self.stealthCodeEngine.extract_data)
         self.dir_monitor.start()
 
@@ -46,111 +43,53 @@ class StealthCodeApp:
         # Set up the application UI
         self.setup_ui()
 
-
     def start_networking_thread(self):
         """Start the networking server in a separate thread."""
         networking_thread = threading.Thread(target=self.networking.start_server)
-        networking_thread.daemon = True  # Daemonize the thread to ensure it closes when the program exits
+        networking_thread.daemon = True
         networking_thread.start()
 
-
-    def setup_ui(self):
-
-
-        self.message_box = RoundedTextBox(self.root, 50, 170, 500, 150, 20, "#2b2b2b", "#3c3f41", "#ffffff", ("Krona One", 12))
-        self.received_box = RoundedTextBox(self.root, 50, 430, 500, 150, 20, "#2b2b2b", "#3c3f41", "#ffffff", ("Krona One", 12))
-
-        ImagePlaceholder(self.root, 600, 140, 450, 450, "#3c3f41")
-
-        # Set up the custom logo
-        logo_with_custom_font(self.root, "STEALTHCODE", "assets/FasterOne-Regular.ttf", 48, "#2b2b2b")
-
-        Label(self.root, text=f"Message to user: {self.receiver_username}", bg="#2b2b2b", fg="#ffffff", font=("Krona One", 14)).place(x=55, y=140)
-        Label(self.root, text=f"Message from user: {self.receiver_username}", bg="#2b2b2b", fg="#ffffff", font=("Krona One", 14)).place(x=55, y=400)
-
-
-        # Set up the send button
-        button_canvas = Canvas(self.root, width=60, height=60, bg="#2b2b2b", highlightthickness=0)
-        button_canvas.place(x=500, y=325)  # Adjust position as needed
-        self.load_send_button_image(button_canvas, 30, 30, 50, self.send_message)  # Center in canvas
-
-
-
-        # Bind the close event
-        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
-
-        Label(self.root, text=f"Send Message", bg="#2b2b2b", fg="#ffffff", font=("Krona One", 14)).place(x=366, y=340)
-
-
-
-    def load_send_button_image(self, canvas, x, y, size, command=None):
-        try:
-            # Load and resize the button image
-            img = Image.open("assets/arrow.png").resize((size, size), Image.Resampling.LANCZOS)
-            self.send_button_image = ImageTk.PhotoImage(img)  # Store reference to prevent garbage collection
-
-            # Place the image on the canvas
-            image_id = canvas.create_image(x, y, image=self.send_button_image, anchor="center")
-
-            # Bind the button click event
-            if command:
-                canvas.tag_bind(image_id, "<Button-1>", lambda e: command())
-
-        except Exception as e:
-            print(f"Error loading send button image: {e}")
-
     def send_message(self):
-        message = self.message_box.get_message().strip()
-        if not message:
-            messagebox.showwarning("Empty Message", "Please enter a message before sending!")
-            return
-        
-        receiver_public_key = vpn_networking.get_public_key(self.receiver_username)
+        """Send a message using threading to avoid GUI freezing."""
+        threading.Thread(target=self._send_message_thread).start()
 
-        output_path, crypto_transmission_key, crypto_tag = self.stealthCodeEngine.hide_data(message, file_path, receiver_public_key)
-        key_data = {
-            "transmission_key": crypto_transmission_key,
-            "tag": crypto_tag
-        }
+    def _send_message_thread(self):
+        """Handle the message sending process."""
+        try:
+            message = self.message_box.get_message().strip()
+            if not message:
+                messagebox.showwarning("Empty Message", "Please enter a message before sending!")
+                return
 
-        file_path = "/tmp/key.json"
-        with open(file_path, "w") as json_file:
-            json.dump(key_data, json_file, indent=4)
-        
-        print(f"Data written to {file_path}")
-        self.networking.send_file(file_path, self.ip_address)
-        self.networking.send_file(output_path, self.ip_address)
+            if not self.file_path:
+                messagebox.showwarning("No Image", "Please select an image before sending!")
+                return
 
-        self.message_box.clear_message()
-        custom_message_dialog(self.root, f"Message Sent:\n\n{message}")
+            receiver_public_key = vpn_networking.get_public_key(self.receiver_username)
+            if not receiver_public_key:
+                messagebox.showerror("Error", "Failed to retrieve receiver's public key.")
+                return
 
-    def on_close(self):
-        """Handle the closing of the root window."""
-        if messagebox.askokcancel("Quit", "Do you want to quit?"):
-            # Terminate subprocesses if any are running
-            for process in subprocess._active:
-                try:
-                    process.terminate()
-                except Exception as e:
-                    print(f"Error terminating process: {e}")
+            output_path, crypto_transmission_key, crypto_tag = self.stealthCodeEngine.hide_data(
+                message, self.file_path, receiver_public_key
+            )
 
-            # Destroy the root window
-            self.root.destroy()
-            vpn_networking.vpn_server_disconnection()
-            print("[-] Stopping receiver listener")
-            
-            # to stop the listeing sever
-            self.networking.stop_server()
+            key_data = {
+                "transmission_key": crypto_transmission_key,
+                "tag": crypto_tag
+            }
 
-            # Stop directory monitor
-            self.dir_monitor.stop()
+            key_file_path = "/tmp/key.json"
+            with open(key_file_path, "w") as json_file:
+                json.dump(key_data, json_file, indent=4)
 
-            # Exit the program
-            sys.exit()
+            self.networking.send_file(key_file_path, self.ip_address)
+            self.networking.send_file(output_path, self.ip_address)
 
-    def run(self):
-        self.root.mainloop()
-
+            self.message_box.clear_message()
+            custom_message_dialog(self.root, f"Message Sent:\n\n{message}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to send message: {e}")
 
 class RoundedTextBox:
     def __init__(self, master, x, y, width, height, corner_radius, bg_color, fg_color, text_color, font):
