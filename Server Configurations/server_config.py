@@ -83,7 +83,7 @@ def server_side_vpn_config():
 
 
 
-def public_key_db(client_name, public_key:None):
+def public_key_db(client_name):
 
     connection = sqlite3.connect("public_key.db")
     cursor = connection.cursor()
@@ -98,7 +98,7 @@ def public_key_db(client_name, public_key:None):
     cursor.execute("""INSERT INTO public_key 
                    (username, public_key) VALUES 
                    (?, ?);
-                    """, (client_name, public_key))
+                    """, (client_name, None))
     
     connection.commit()
     connection.close()
