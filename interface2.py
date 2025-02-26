@@ -15,6 +15,7 @@ import threading
 file_path = None
 
 class StealthCodeApp:
+
     def __init__(self, username, receiver_username, ip_address):
         self.username = username
         self.receiver_username = receiver_username
@@ -43,6 +44,15 @@ class StealthCodeApp:
         # Set up the application UI
         self.setup_ui()
 
+        # submiting the public key to the database: 
+        self.update_key_thread(self.stealthCodeEngine.crypto.publickey, self.username)
+
+    def update_key_thread(self, public_key, username):
+        thread = threading.Thread(target=vpn_networking.send_public_key, args=(public_key, username))
+        thread.daemon = True  # Ensures the thread exits when the main program closes
+        thread.start()
+
+
     def start_networking_thread(self):
         """Start the networking server in a separate thread."""
         networking_thread = threading.Thread(target=self.networking.start_server)
@@ -65,7 +75,8 @@ class StealthCodeApp:
                 messagebox.showwarning("No Image", "Please select an image before sending!")
                 return
 
-            receiver_public_key = vpn_networking.get_public_key(self.receiver_username)
+            receiver_public_key = vpn_networking.get_public_key(self.receiver_username) # here we get vpn public key but we want the recievers public key
+            # so we can register the public key with the database (solved)
             if not receiver_public_key:
                 messagebox.showerror("Error", "Failed to retrieve receiver's public key.")
                 return
@@ -90,6 +101,73 @@ class StealthCodeApp:
             custom_message_dialog(self.root, f"Message Sent:\n\n{message}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to send message: {e}")
+
+
+    def setup_ui(self):
+        """Set up the user interface components."""
+        # Set up the custom logo
+        logo_with_custom_font(self.root, "STEALTHCODE", "assets/FasterOne-Regular.ttf", 48, "#2b2b2b")
+
+        # Message boxes
+        self.message_box = RoundedTextBox(self.root, 50, 170, 500, 150, 20, "#2b2b2b", "#3c3f41", "#ffffff", ("Krona One", 12))
+        self.received_box = RoundedTextBox(self.root, 50, 430, 500, 150, 20, "#2b2b2b", "#3c3f41", "#ffffff", ("Krona One", 12))
+
+        # Image placeholder
+        self.image_placeholder = ImagePlaceholder(self.root, 600, 140, 450, 450, "#3c3f41")
+
+        # Labels
+        Label(self.root, text=f"Message to user: {self.receiver_username}", bg="#2b2b2b", fg="#ffffff", font=("Krona One", 14)).place(x=55, y=140)
+        Label(self.root, text=f"Message from user: {self.receiver_username}", bg="#2b2b2b", fg="#ffffff", font=("Krona One", 14)).place(x=55, y=400)
+
+        # Send button
+        button_canvas = Canvas(self.root, width=60, height=60, bg="#2b2b2b", highlightthickness=0)
+        button_canvas.place(x=500, y=325)
+        self.load_send_button_image(button_canvas, 30, 30, 50, self.send_message)
+
+        # Bind the close event
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        # Send Message label
+        Label(self.root, text="Send Message", bg="#2b2b2b", fg="#ffffff", font=("Krona One", 14)).place(x=366, y=340)
+
+    def load_send_button_image(self, canvas, x, y, size, command=None):
+        """Load and display the send button image."""
+        try:
+            img = Image.open("assets/arrow.png").resize((size, size), Image.Resampling.LANCZOS)
+            self.send_button_image = ImageTk.PhotoImage(img)
+            image_id = canvas.create_image(x, y, image=self.send_button_image, anchor="center")
+            if command:
+                canvas.tag_bind(image_id, "<Button-1>", lambda e: command())
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load send button image: {e}")
+
+    def on_close(self):
+        """Handle the closing of the root window."""
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            # Terminate subprocesses if any are running
+            for process in subprocess._active:
+                try:
+                    process.terminate()
+                except Exception as e:
+                    print(f"Error terminating process: {e}")
+
+            # Destroy the root window
+            self.root.destroy()
+            vpn_networking.vpn_server_disconnection()
+            print("[-] Stopping receiver listener")
+
+            # Stop the networking server
+            self.networking.stop_server()
+
+            # Stop directory monitor
+            self.dir_monitor.stop()
+
+            # Exit the program
+            sys.exit()
+
+    def run(self):
+        """Run the Tkinter main loop."""
+        self.root.mainloop()
 
 class RoundedTextBox:
     def __init__(self, master, x, y, width, height, corner_radius, bg_color, fg_color, text_color, font):

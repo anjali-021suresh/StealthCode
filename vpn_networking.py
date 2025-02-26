@@ -104,12 +104,12 @@ def user_ip_retrieval(receiver_username: str):
 def get_public_key(receiver_username: str):
     """Retrieve the public key of the receiver."""
     data = {"receiver_name": receiver_username}
-    public_key_url = f"{URL}/public_key"
+    public_key_url = f"{URL}/get_public_key"
 
     try:
         response = requests.post(public_key_url, json=data)
         response.raise_for_status()  # Raise an exception for HTTP errors
-        receiver_public_key = response.json().get("receiver_pub_key")
+        receiver_public_key = response.json().get("receiver_public_key")
         if receiver_public_key:
             print("Receiver Found!")
             print("Receiver public key found:", receiver_public_key)
@@ -123,3 +123,23 @@ def get_public_key(receiver_username: str):
     except KeyError:
         print("Unexpected response format from server.")
         return None
+
+
+def send_public_key(public_key, username):
+    """Send the public key of the user to update it in the database."""
+    data = {"username": username, "public_key": public_key}
+    public_key_url = f"{URL}/add_public_key"
+
+    try:
+        response = requests.post(public_key_url, json=data)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        if response.status_code == 200:
+            print("Update successful")
+            return True
+        else:
+            print(f"Username not found or unexpected response: {response.text}")
+            return False
+    except requests.exceptions.RequestException as e:
+        print(f"Public key update failed! Error: {e}")
+        return False

@@ -23,6 +23,9 @@ class Engine:
 
     def hide_data(self, payload_data:str, image_path:str, receiver_public_key) -> str:
 
+
+        # print(self.crypto.privatekey)
+
         #1. Encrypt the data
         self.crypto.key_generation(receiver_public_key)
         self.crypto.payload = payload_data

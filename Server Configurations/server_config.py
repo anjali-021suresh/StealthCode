@@ -83,7 +83,7 @@ def server_side_vpn_config():
 
 
 
-def public_key_db(client_name, public_key):
+def public_key_db(client_name, public_key:None):
 
     connection = sqlite3.connect("public_key.db")
     cursor = connection.cursor()
@@ -91,7 +91,7 @@ def public_key_db(client_name, public_key):
     cursor.execute("""CREATE TABLE IF NOT EXISTS public_key(
                                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                                 username TEXT UNIQUE NOT NULL,
-                                public_key TEXT UNIQUE NOT NULL
+                                public_key TEXT UNIQUE
                             );
                             """)
     

@@ -4,7 +4,7 @@ import sqlite3
 app = Flask(__name__)
 
 DB_FILE = "users.db"
-PUBLIC_KEY_REGISTERY = "public_key.db"
+PUBLIC_KEY_REGISTRY = "public_key.db" # encrpytion decrption pub key
 
 
 @app.route('/auth', methods=['POST'])
@@ -51,26 +51,70 @@ def receiver_selection():
     return jsonify({'status': 'success', 'receiver_static_ip': receiver_static_ip}), 200
 
 
-@app.route('/public_key', methods=['POST'])
-def public_key_registery():
+@app.route('/add_public_key', methods=['POST'])
+def submit_public_key():
+    data = request.json
+    username = data.get("username")
+    public_key = data.get("public_key")
+
+    # input validation
+    if not username:
+        return jsonify({"status": "failure", "message": "Username is required"}), 400
+
+    
+    try:
+        # Connect to the database
+        connection = sqlite3.connect(PUBLIC_KEY_REGISTRY)
+        cursor = connection.cursor()
+
+        # Update the public key for the given username
+        cursor.execute("UPDATE public_key SET public_key = ? WHERE username = ?", (public_key, username))
+        connection.commit()
+
+        # Check if any row was actually updated
+        if cursor.rowcount == 0:
+            return jsonify({'status': 'failure', 'message': 'Receiver not found'}), 404
+
+        return jsonify({'status': 'success', 'message': 'Public key updated successfully'}), 200
+
+    except sqlite3.Error as e:
+        return jsonify({'status': 'failure', 'message': str(e)}), 500
+
+    finally:
+        connection.close()  # Ensure database connection is closed
+
+@app.route('/get_public_key', methods=['POST'])
+def get_public_key():
     data = request.json
     receiver_name = data.get("receiver_name")
 
-    # input validation
+    # Input validation
     if not receiver_name:
-        return jsonify({"status": "failure", "message": "receiver name is required"}), 400
-    
-    # Connect to the correct database (public_key.db)
-    connection = sqlite3.connect(PUBLIC_KEY_REGISTERY)  # Use PUBLIC_KEY_REGISTERY here
-    cursor = connection.cursor()
-    cursor.execute("SELECT public_key FROM public_key WHERE username = ?", (receiver_name,))
-    result = cursor.fetchone() # fetches one row
+        return jsonify({"status": "failure", "message": "Receiver name is required"}), 400
 
-    if result:
-        reciever_public_key = result[0]
-        return jsonify({'status': 'success', 'receiver_pub_key': reciever_public_key}), 200
-    else:
-        return jsonify({'status': 'failure', 'message': 'Receiver not found'}), 404
+    try:
+        # Connect to the database
+        connection = sqlite3.connect(PUBLIC_KEY_REGISTRY)  # Ensure variable is correctly defined
+        cursor = connection.cursor()
+
+        # Retrieve the public key for the given username
+        cursor.execute("SELECT public_key FROM public_key WHERE username = ?", (receiver_name,))
+        result = cursor.fetchone()
+
+        if result is not None:  # Ensures we don't access NoneType
+            receiver_public_key = result[0]
+            return jsonify({'status': 'success', 'receiver_public_key': receiver_public_key}), 200
+        else:
+            return jsonify({'status': 'failure', 'message': 'Receiver not found'}), 404
+
+    except sqlite3.Error as e:
+        return jsonify({'status': 'failure', 'message': str(e)}), 500
+
+    finally:
+        connection.close()  # Ensure database connection is closed
+
+
+
 
 
 if __name__ == "__main__":
