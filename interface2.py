@@ -10,6 +10,7 @@ from networking import Networking
 from engine import Engine
 from directory_mointor import DirectoryMonitor
 import threading
+import base64
 
 
 file_path = None
@@ -45,7 +46,8 @@ class StealthCodeApp:
         self.setup_ui()
 
         # submiting the public key to the database: 
-        self.update_key_thread(self.stealthCodeEngine.crypto.publickey, self.username)
+        jsonPublicKeyFormat = base64.b64encode(self.stealthCodeEngine.crypto.publickey).decode("utf-8"),  # Convert bytes to Base64 string
+        self.update_key_thread(jsonPublicKeyFormat, self.username)
 
     def update_key_thread(self, public_key, username):
         thread = threading.Thread(target=vpn_networking.send_public_key, args=(public_key, username))
@@ -77,9 +79,11 @@ class StealthCodeApp:
 
             receiver_public_key = vpn_networking.get_public_key(self.receiver_username) # here we get vpn public key but we want the recievers public key
             # so we can register the public key with the database (solved)
+
             if not receiver_public_key:
                 messagebox.showerror("Error", "Failed to retrieve receiver's public key.")
                 return
+            
 
             output_path, crypto_transmission_key, crypto_tag = self.stealthCodeEngine.hide_data(
                 message, self.file_path, receiver_public_key

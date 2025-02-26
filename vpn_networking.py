@@ -3,6 +3,7 @@ import netifaces
 import requests
 import subprocess
 from datetime import datetime
+import base64
 
 # URL for the Flask server
 URL = "http://34.60.27.56:5000"
@@ -109,7 +110,7 @@ def get_public_key(receiver_username: str):
     try:
         response = requests.post(public_key_url, json=data)
         response.raise_for_status()  # Raise an exception for HTTP errors
-        receiver_public_key = response.json().get("receiver_public_key")
+        receiver_public_key = base64.b64decode(response.json().get("receiver_public_key"))
         if receiver_public_key:
             print("Receiver Found!")
             print("Receiver public key found:", receiver_public_key)

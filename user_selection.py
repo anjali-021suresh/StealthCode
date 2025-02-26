@@ -122,7 +122,7 @@ class StealthCodeApp:
         receiver_name = self.selected_receiver.get()
         print("Receiver is:", receiver_name)
 
-        receiver_ip = vpn_networking.user_ip_retrival(receiver_name)
+        receiver_ip = vpn_networking.user_ip_retrieval(receiver_name)
         print("Receiver IP:", receiver_ip)
 
         if receiver_ip:
