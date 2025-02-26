@@ -145,7 +145,7 @@ def add_clients(client_name):
         f.write(client_config)
     
     print(f"[+] Client configuration saved to /tmp/{client_name}_wg0.conf")
-    public_key_db(client_name, client_public_key)
+    public_key_db(client_name)
     print(f"[+] Public key is added to the database public_key_registery")
     return ip_address
     
