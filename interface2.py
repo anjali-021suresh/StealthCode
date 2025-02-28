@@ -28,6 +28,8 @@ class StealthCodeApp:
         self.stealthCodeEngine = Engine()
         self.networking = Networking()
 
+        # self.stealthCodeEngine.crypto.plaintext
+
         # Start the networking server in a separate thread
         # self.start_networking_thread()
 
@@ -51,14 +53,30 @@ class StealthCodeApp:
         # print(jsonPublicKeyFormat)
         self.update_key_thread(jsonPublicKeyFormat, self.username)
 
+        self.update_received_message_tbox()
+
     def update_key_thread(self, public_key, username):
         thread = threading.Thread(target=vpn_networking.send_public_key, args=(public_key, username))
         thread.daemon = True  # Ensures the thread exits when the main program closes
         thread.start()
         thread.join()
         vpn_networking.vpn_server_connection()
+
         # Start the networking server in a separate thread
         self.start_networking_thread()
+
+
+    def update_received_message_tbox(self):
+        thread = threading.Thread(target=self._update_received_message)
+        thread.daemon = True  # Ensures the thread exits when the main program closes
+        thread.start()
+
+
+
+    def _update_received_message(self):
+        
+        if self.stealthCodeEngine.crypto.plaintext:
+            self.received_box.set_message(self.stealthCodeEngine.crypto.plaintext)
 
 
     def start_networking_thread(self):
@@ -84,12 +102,14 @@ class StealthCodeApp:
                 messagebox.showwarning("No Image", "Please select an image before sending!")
                 return
 
+            vpn_networking.vpn_server_disconnection()
             receiver_public_key = vpn_networking.get_public_key(self.receiver_username) # here we get vpn public key but we want the recievers public key
             # so we can register the public key with the database (solved)
-
+            # print(receiver_public_key)
             if not receiver_public_key:
                 messagebox.showerror("Error", "Failed to retrieve receiver's public key.")
                 return
+            vpn_networking.vpn_server_connection()
             
 
             output_path, crypto_transmission_key, crypto_tag = self.stealthCodeEngine.hide_data(
@@ -97,8 +117,8 @@ class StealthCodeApp:
             )
 
             key_data = {
-                "transmission_key": crypto_transmission_key,
-                "tag": crypto_tag
+                "transmission_key": base64.b64encode(crypto_transmission_key).decode("utf-8"),
+                "tag": base64.b64encode(crypto_tag).decode("utf-8")
             }
 
             key_file_path = "/tmp/key.json"
@@ -204,6 +224,11 @@ class RoundedTextBox:
 
     def clear_message(self):
         self.text.delete("1.0", END)
+
+    def set_message(self, message):
+        """Set text content inside the text box."""
+        self.clear_message()  # Clear existing text before inserting new message
+        self.text.insert("1.0", message)
 
 
 class ImagePlaceholder:

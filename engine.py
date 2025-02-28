@@ -3,7 +3,7 @@ import steganographic as stegano
 from cryptographic import CryptographicFunctions
 import datetime
 import json
-
+import base64
 
 
 class Engine:
@@ -50,8 +50,8 @@ class Engine:
         with open("/tmp/key.json", "r", encoding="utf-8") as file:
             data = json.load(file)  
 
-        transmission_key = data.get("transmission_key")
-        tag = data.get("tag")
+        transmission_key = base64.b64decode(data["transmission_key"])
+        tag = base64.b64decode(data["tag"])
 
         self.key_received, self.received_tag = transmission_key, tag
 
