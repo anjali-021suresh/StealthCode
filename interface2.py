@@ -212,6 +212,7 @@ class ImagePlaceholder:
 
     def add_image(self, event):
 
+        global file_path
         file_path = filedialog.askopenfilename(initialdir="~", title="Select image file")
         if file_path:
             try:
