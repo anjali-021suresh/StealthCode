@@ -127,15 +127,15 @@ class StealthCodeApp:
 
         if receiver_ip:
             print("[+] Connecting to the VPN server...")
-            if vpn_networking.vpn_server_connection():
-                print("[+] VPN connection established.")
+            if vpn_networking.file_test_config():
+                # print("[+] VPN connection established.")
                 self.root.destroy()
 
                 # Start StealthCodeApp from interface2
                 init = interface2.StealthCodeApp(self.current_user, receiver_name, receiver_ip)
                 init.run()  # Run the second app's GUI in the same thread (blocking)
             else:
-                print("[-] VPN connection failed. Asking user to select a config file...")
+                print("[+]Asking user to select a config file...")
                 self.show_custom_dialog()
 
                 if self.SELECTED_WG0_CONF:
@@ -177,7 +177,7 @@ class StealthCodeApp:
                 dialog.destroy()
                 shutil.move(self.SELECTED_WG0_CONF, "/etc/wireguard/wg0.conf")
                 print(f"File moved to {"/etc/wireguard/wg0.conf"}")
-                vpn_networking.vpn_server_connection()
+                # vpn_networking.vpn_server_connection()
             else:
                 messagebox.showwarning("File Required", "You must select a valid file to proceed!")
 

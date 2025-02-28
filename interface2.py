@@ -29,7 +29,7 @@ class StealthCodeApp:
         self.networking = Networking()
 
         # Start the networking server in a separate thread
-        self.start_networking_thread()
+        # self.start_networking_thread()
 
         # Directory monitoring
         self.monitored_dir = "received_files"
@@ -47,13 +47,18 @@ class StealthCodeApp:
         self.setup_ui()
 
         # submiting the public key to the database: 
-        jsonPublicKeyFormat = base64.b64encode(self.stealthCodeEngine.crypto.publickey).decode("utf-8"),  # Convert bytes to Base64 string
+        jsonPublicKeyFormat = base64.b64encode(self.stealthCodeEngine.crypto.publickey).decode("utf-8")  # Convert bytes to Base64 string
+        # print(jsonPublicKeyFormat)
         self.update_key_thread(jsonPublicKeyFormat, self.username)
 
     def update_key_thread(self, public_key, username):
         thread = threading.Thread(target=vpn_networking.send_public_key, args=(public_key, username))
         thread.daemon = True  # Ensures the thread exits when the main program closes
         thread.start()
+        thread.join()
+        vpn_networking.vpn_server_connection()
+        # Start the networking server in a separate thread
+        self.start_networking_thread()
 
 
     def start_networking_thread(self):
@@ -74,7 +79,8 @@ class StealthCodeApp:
                 messagebox.showwarning("Empty Message", "Please enter a message before sending!")
                 return
 
-            if not self.file_path:
+            global file_path
+            if not file_path:
                 messagebox.showwarning("No Image", "Please select an image before sending!")
                 return
 
@@ -87,7 +93,7 @@ class StealthCodeApp:
             
 
             output_path, crypto_transmission_key, crypto_tag = self.stealthCodeEngine.hide_data(
-                message, self.file_path, receiver_public_key
+                message, file_path, receiver_public_key
             )
 
             key_data = {

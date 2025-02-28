@@ -10,6 +10,15 @@ URL = "http://34.60.27.56:5000"
 LISTENING_PORT = 5001
 BUFFER_SIZE = 4096
 
+
+def file_test_config():
+
+    if not os.path.exists("/etc/wireguard/wg0.conf"):
+        print("[ERROR] Config file not found.")
+        return False
+
+
+
 def vpn_server_connection():
     """Connect to the VPN server using WireGuard."""
     print("[DEBUG] Checking if wg0.conf exists...")
@@ -144,3 +153,5 @@ def send_public_key(public_key, username):
     except requests.exceptions.RequestException as e:
         print(f"Public key update failed! Error: {e}")
         return False
+    
+    # vpn_server_connection()
