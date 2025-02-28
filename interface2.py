@@ -21,7 +21,8 @@ class StealthCodeApp:
         self.username = username
         self.receiver_username = receiver_username
         self.ip_address = ip_address
-        self.file_path = None
+        global file_path
+        self.file_path = file_path
 
         # Initialize core components
         self.stealthCodeEngine = Engine()
