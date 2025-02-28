@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
 import sqlite3
 
+import traceback
+
 app = Flask(__name__)
 
 DB_FILE = "users.db"
@@ -57,11 +59,9 @@ def submit_public_key():
     username = data.get("username")
     public_key = data.get("public_key")
 
-    # input validation
     if not username:
         return jsonify({"status": "failure", "message": "Username is required"}), 400
 
-    
     try:
         # Connect to the database
         connection = sqlite3.connect(PUBLIC_KEY_REGISTRY)
@@ -71,17 +71,19 @@ def submit_public_key():
         cursor.execute("UPDATE public_key SET public_key = ? WHERE username = ?", (public_key, username))
         connection.commit()
 
-        # Check if any row was actually updated
         if cursor.rowcount == 0:
             return jsonify({'status': 'failure', 'message': 'Receiver not found'}), 404
 
         return jsonify({'status': 'success', 'message': 'Public key updated successfully'}), 200
 
     except sqlite3.Error as e:
+        print("Database Error:", str(e))  # Log the error
+        print(traceback.format_exc())  # Print the full traceback
         return jsonify({'status': 'failure', 'message': str(e)}), 500
 
     finally:
-        connection.close()  # Ensure database connection is closed
+        connection.close()
+
 
 @app.route('/get_public_key', methods=['POST'])
 def get_public_key():
@@ -118,4 +120,4 @@ def get_public_key():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
