@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+import os
+import time
 
 
 def calculate_edge_strength(image_array:np):
@@ -90,6 +92,13 @@ def extract_data_adaptive(stego_image_path:str):
         stego_image_path: saved image path.
     """
     # Load stego image in RGB (BGR in OpenCV)
+
+    if not os.path.exists(stego_image_path):
+            print("Image not found.")
+            time.sleep(15)
+
+
+
     image = cv2.imread(stego_image_path)
     if image is None:
         # Handle a function of message box here.
