@@ -58,6 +58,7 @@ def submit_public_key():
     data = request.json
     username = data.get("username")
     public_key = data.get("public_key")
+    print(public_key)
 
     if not username:
         return jsonify({"status": "failure", "message": "Username is required"}), 400
