@@ -72,7 +72,6 @@ class StealthCodeApp:
         thread.start()
 
 
-
     def _update_received_message(self):
         
         if self.stealthCodeEngine.crypto.plaintext:

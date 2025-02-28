@@ -43,27 +43,35 @@ class Networking:
     def handle_client(self, conn):
         """Handle incoming client connections."""
         try:
-            file_name = conn.recv(self.BUFFER_SIZE).decode("utf-8")
+            # Receive file name
+            file_name_data = conn.recv(self.BUFFER_SIZE)
+            try:
+                file_name = file_name_data.decode("utf-8").strip()
+            except UnicodeDecodeError:
+                print("[-] Invalid file name received (not UTF-8). Using default name.")
+                file_name = "received_file"
+
             print(f"[+] Receiving file: {file_name}")
 
+            # Determine file type
             file_type = os.path.splitext(file_name)[1].lower()
+
+            # Initialize save_path
+            save_path = ""
+
             if file_type == ".json":
-                location_path = f"/tmp/{file_name}"
-                with open(location_path, "wb") as file:
-                    while True:
-                        data = conn.recv(self.BUFFER_SIZE)
-                        if not data:
-                            break
-                        file.write(data)
+                save_path = f"/tmp/{file_name}"
             else:
                 timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
                 save_path = os.path.join(self.SAVE_PATH, f"{timestamp}_{file_name}")
-                with open(save_path, "wb") as file:
-                    while True:
-                        data = conn.recv(self.BUFFER_SIZE)
-                        if not data:
-                            break
-                        file.write(data)
+
+            # Save the file
+            with open(save_path, "wb") as file:
+                while True:
+                    data = conn.recv(self.BUFFER_SIZE)
+                    if not data:
+                        break
+                    file.write(data)
 
             print(f"[+] File received successfully: {save_path}")
         except Exception as e:
@@ -101,4 +109,3 @@ class Networking:
                 print(f"[+] File {file_name} sent successfully!")
         except Exception as e:
             print(f"[-] Error sending file: {e}")
-            
