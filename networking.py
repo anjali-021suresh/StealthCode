@@ -71,35 +71,39 @@ class Networking:
     def handle_client(self, conn):
         """Handle incoming client connections."""
         try:
-            # Receive file name and size
-            header_data = conn.recv(self.BUFFER_SIZE).decode("utf-8")
-            file_name, file_size = header_data.split("|")
-            file_size = int(file_size)
+            while True:
+                # Receive file name and size
+                header_data = conn.recv(self.BUFFER_SIZE).decode("utf-8")
+                if not header_data:
+                    break  # No more files to receive
 
-            logger.info(f"Receiving file: {file_name} (Size: {file_size} bytes)")
+                file_name, file_size = header_data.split("|")
+                file_size = int(file_size)
 
-            # Determine save path
-            save_path = self.get_save_path(file_name)
+                logger.info(f"Receiving file: {file_name} (Size: {file_size} bytes)")
 
-            # Receive and save the file
-            total_received = 0
-            with open(save_path, "wb") as file:
-                while total_received < file_size:
-                    data = conn.recv(min(self.BUFFER_SIZE, file_size - total_received))
-                    if not data:
-                        break
-                    file.write(data)
-                    total_received += len(data)
-                    logger.info(f"Received {total_received} bytes so far...")
+                # Determine save path
+                save_path = self.get_save_path(file_name)
 
-            logger.info(f"File received successfully: {save_path}")
-            logger.info(f"Total bytes received: {total_received}")
+                # Receive and save the file
+                total_received = 0
+                with open(save_path, "wb") as file:
+                    while total_received < file_size:
+                        data = conn.recv(min(self.BUFFER_SIZE, file_size - total_received))
+                        if not data:
+                            break
+                        file.write(data)
+                        total_received += len(data)
+                        logger.info(f"Received {total_received} bytes so far...")
 
-            # Verify file integrity
-            if total_received == file_size:
-                logger.info("File integrity verified.")
-            else:
-                logger.warning(f"File integrity check failed. Expected {file_size} bytes, received {total_received} bytes.")
+                logger.info(f"File received successfully: {save_path}")
+                logger.info(f"Total bytes received: {total_received}")
+
+                # Verify file integrity
+                if total_received == file_size:
+                    logger.info("File integrity verified.")
+                else:
+                    logger.warning(f"File integrity check failed. Expected {file_size} bytes, received {total_received} bytes.")
         except Exception as e:
             logger.error(f"Error receiving file: {e}")
         finally:
