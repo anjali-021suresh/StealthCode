@@ -2,7 +2,6 @@ import os
 import socket
 from datetime import datetime
 import logging
-import hashlib
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
@@ -72,26 +71,35 @@ class Networking:
     def handle_client(self, conn):
         """Handle incoming client connections."""
         try:
-            # Receive file name
-            file_name = self.receive_file_name(conn)
-            if not file_name:
-                file_name = "received_file"
+            # Receive file name and size
+            header_data = conn.recv(self.BUFFER_SIZE).decode("utf-8")
+            file_name, file_size = header_data.split("|")
+            file_size = int(file_size)
 
-            logger.info(f"Receiving file: {file_name}")
+            logger.info(f"Receiving file: {file_name} (Size: {file_size} bytes)")
 
             # Determine save path
             save_path = self.get_save_path(file_name)
 
             # Receive and save the file
-            total_received = self.receive_file_data(conn, save_path)
+            total_received = 0
+            with open(save_path, "wb") as file:
+                while total_received < file_size:
+                    data = conn.recv(min(self.BUFFER_SIZE, file_size - total_received))
+                    if not data:
+                        break
+                    file.write(data)
+                    total_received += len(data)
+                    logger.info(f"Received {total_received} bytes so far...")
+
             logger.info(f"File received successfully: {save_path}")
             logger.info(f"Total bytes received: {total_received}")
 
-            # Verify file integrity (optional)
-            if self.verify_file_integrity(save_path, total_received):
+            # Verify file integrity
+            if total_received == file_size:
                 logger.info("File integrity verified.")
             else:
-                logger.warning("File integrity check failed.")
+                logger.warning(f"File integrity check failed. Expected {file_size} bytes, received {total_received} bytes.")
         except Exception as e:
             logger.error(f"Error receiving file: {e}")
         finally:
@@ -105,11 +113,11 @@ class Networking:
             file_name = file_name_data.decode("utf-8").strip()
             if not os.path.splitext(file_name)[1]:
                 logger.warning("Invalid file name (no extension). Using default name.")
-                return "received_file"
+                return "received_file.png"  # Default to a known image extension
             return file_name
         except UnicodeDecodeError:
             logger.warning("Invalid file name received (not UTF-8). Using default name.")
-            return "received_file"
+            return "received_file.png"  # Default to a known image extension
 
     def get_save_path(self, file_name):
         """Generate the save path for the received file."""
@@ -119,19 +127,6 @@ class Networking:
         else:
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
             return os.path.join(self.SAVE_PATH, f"{timestamp}_{file_name}")
-
-    def receive_file_data(self, conn, save_path):
-        """Receive file data and save it to the specified path."""
-        total_received = 0
-        with open(save_path, "wb") as file:
-            while True:
-                data = conn.recv(self.BUFFER_SIZE)
-                if not data:
-                    break
-                file.write(data)
-                total_received += len(data)
-                logger.info(f"Received {total_received} bytes so far...")
-        return total_received
 
     def verify_file_integrity(self, file_path, expected_size):
         """Verify the integrity of the received file."""
@@ -155,14 +150,17 @@ class Networking:
             return
 
         file_name = os.path.basename(file_path)
+        file_size = os.path.getsize(file_path)
+        logger.info(f"Sending file: {file_name} (Size: {file_size} bytes)")
         logger.info(f"Connecting to server at {dest_ip}:{self.LISTEN_PORT}")
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
                 client_socket.connect((dest_ip, self.LISTEN_PORT))
                 logger.info("Connected to server")
 
-                # Send file name
-                client_socket.send(file_name.encode("utf-8"))
+                # Send file name and size
+                header = f"{file_name}|{file_size}"
+                client_socket.send(header.encode("utf-8"))
 
                 # Send file data
                 total_sent = 0
