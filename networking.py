@@ -11,11 +11,38 @@ class Networking:
 
     def __init__(self):
         self.LISTEN_PORT = LISTENING_PORT
-        self.HOST_IP = vpn_networking.get_wireguard_ip()  # Bind to all available interfaces
+        self.HOST_IP = self.extract_address()  # Bind to all available interfaces
         self.BUFFER_SIZE = BUFFER_SIZE
         self.SAVE_PATH = "received_files"  # Directory to save received files
         self.server_socket = None
         self.is_running = False
+
+    def extract_address(self, file_path="\etc\wireguard\wg0.conf"):
+        """
+        Extracts the 'Address' value from a WireGuard configuration file.
+
+        Args:
+            file_path (str): Path to the WireGuard configuration file.
+
+        Returns:
+            str: The extracted IP address.
+        """
+        try:
+            with open(file_path, "r") as file:
+                for line in file:
+                    # Strip whitespace and check if the line starts with 'Address'
+                    if line.strip().startswith("Address"):
+                        # Extract the value after the '=' sign
+                        address = line.split("=")[1].strip()
+                        # Remove the subnet mask (e.g., '/24') if present
+                        return address.split("/")[0]
+        except FileNotFoundError:
+            print(f"[-] File not found: {file_path}")
+        except Exception as e:
+            print(f"[-] Error reading file: {e}")
+
+        return None
+
 
     def start_server(self):
         """Start the file transfer server."""
