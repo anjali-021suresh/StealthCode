@@ -75,6 +75,9 @@ class Networking:
             file_name_data = conn.recv(self.BUFFER_SIZE)
             try:
                 file_name = file_name_data.decode("utf-8").strip()
+                # Ensure the file name is valid and has an extension
+                if not os.path.splitext(file_name)[1]:
+                    file_name = "received_file"
             except UnicodeDecodeError:
                 print("[-] Invalid file name received (not UTF-8). Using default name.")
                 file_name = "received_file"
@@ -95,28 +98,23 @@ class Networking:
 
             # Save the file
             with open(save_path, "wb") as file:
+                total_received = 0
                 while True:
                     data = conn.recv(self.BUFFER_SIZE)
                     if not data:
                         break
                     file.write(data)
+                    total_received += len(data)
+                    print(f"[+] Received {total_received} bytes so far...")
 
             print(f"[+] File received successfully: {save_path}")
+            print(f"[+] Total bytes received: {total_received}")
         except Exception as e:
             print(f"[-] Error receiving file: {e}")
         finally:
             # Ensure the connection is always closed
             conn.close()
             print("[+] Connection closed.")
-
-    def stop_server(self):
-        """Stop the file transfer server."""
-        print("[*] Stopping server...")
-        self.is_running = False
-        if self.server_socket:
-            self.server_socket.close()
-            self.server_socket = None
-        print("[*] Server stopped.")
 
     def send_file(self, file_path, dest_ip):
         """Send a file to the specified destination IP."""
