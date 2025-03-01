@@ -11,6 +11,8 @@ from engine import Engine
 from directory_mointor import DirectoryMonitor
 import threading
 import base64
+import queue
+import time
 
 
 file_path = None
@@ -28,11 +30,6 @@ class StealthCodeApp:
         self.stealthCodeEngine = Engine()
         self.networking = Networking()
 
-        # self.stealthCodeEngine.crypto.plaintext
-
-        # Start the networking server in a separate thread
-        # self.start_networking_thread()
-
         # Directory monitoring
         self.monitored_dir = "received_files"
         os.makedirs(self.monitored_dir, exist_ok=True)
@@ -48,14 +45,16 @@ class StealthCodeApp:
         # Set up the application UI
         self.setup_ui()
 
-        # submiting the public key to the database: 
+        # Submit the public key to the database
         jsonPublicKeyFormat = base64.b64encode(self.stealthCodeEngine.crypto.publickey).decode("utf-8")  # Convert bytes to Base64 string
-        # print(jsonPublicKeyFormat)
         self.update_key_thread(jsonPublicKeyFormat, self.username)
 
+        # Start the received message update thread
+        self.message_queue = queue.Queue()  # Thread-safe queue for messages
         self.update_received_message_tbox()
 
     def update_key_thread(self, public_key, username):
+        """Submit the public key to the database in a separate thread."""
         thread = threading.Thread(target=vpn_networking.send_public_key, args=(public_key, username))
         thread.daemon = True  # Ensures the thread exits when the main program closes
         thread.start()
@@ -65,18 +64,32 @@ class StealthCodeApp:
         # Start the networking server in a separate thread
         self.start_networking_thread()
 
-
     def update_received_message_tbox(self):
+        """Start a thread to update the received message text box."""
+        print("[+] Starting received message text box")
         thread = threading.Thread(target=self._update_received_message)
         thread.daemon = True  # Ensures the thread exits when the main program closes
         thread.start()
-
+        self.root.after(100, self._check_message_queue)  # Schedule GUI updates
 
     def _update_received_message(self):
-        
-        if self.stealthCodeEngine.crypto.plaintext:
-            self.received_box.set_message(self.stealthCodeEngine.crypto.plaintext)
+        """Background thread to check for new messages and update the queue."""
+        while True:
+            if self.stealthCodeEngine.crypto.plaintext:
+                self.message_queue.put(self.stealthCodeEngine.crypto.plaintext)
+                self.stealthCodeEngine.crypto.plaintext = None  # Clear the message
+            time.sleep(1)  # Avoid busy waiting
 
+    def _check_message_queue(self):
+        """Check the message queue and update the GUI."""
+        try:
+            while True:
+                plaintext = self.message_queue.get_nowait()
+                if plaintext:
+                    self.received_box.set_message(plaintext)
+        except queue.Empty:
+            pass
+        self.root.after(100, self._check_message_queue)  # Schedule the next check
 
     def start_networking_thread(self):
         """Start the networking server in a separate thread."""
@@ -102,14 +115,11 @@ class StealthCodeApp:
                 return
 
             vpn_networking.vpn_server_disconnection()
-            receiver_public_key = vpn_networking.get_public_key(self.receiver_username) # here we get vpn public key but we want the recievers public key
-            # so we can register the public key with the database (solved)
-            # print(receiver_public_key)
+            receiver_public_key = vpn_networking.get_public_key(self.receiver_username)
             if not receiver_public_key:
                 messagebox.showerror("Error", "Failed to retrieve receiver's public key.")
                 return
             vpn_networking.vpn_server_connection()
-            
 
             output_path, crypto_transmission_key, crypto_tag = self.stealthCodeEngine.hide_data(
                 message, file_path, receiver_public_key
@@ -131,7 +141,6 @@ class StealthCodeApp:
             custom_message_dialog(self.root, f"Message Sent:\n\n{message}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to send message: {e}")
-
 
     def setup_ui(self):
         """Set up the user interface components."""
@@ -199,6 +208,7 @@ class StealthCodeApp:
         """Run the Tkinter main loop."""
         self.root.mainloop()
 
+
 class RoundedTextBox:
     def __init__(self, master, x, y, width, height, corner_radius, bg_color, fg_color, text_color, font):
         self.canvas = Canvas(master, width=width, height=height, highlightthickness=0, bg=bg_color, bd=0)
@@ -242,13 +252,10 @@ class ImagePlaceholder:
         self.master = master
 
     def add_image(self, event):
-
         global file_path
         file_path = filedialog.askopenfilename(initialdir="~", title="Select image file")
         if file_path:
             try:
-                
-                file_path = file_path
                 img = Image.open(file_path)
                 img = img.resize((self.width, self.height), Image.Resampling.LANCZOS)
                 img_tk = ImageTk.PhotoImage(img)
@@ -323,11 +330,6 @@ def logo_with_custom_font(master, text, font_path, size, bg_color="#2b2b2b", tex
     logo_label = Label(master, image=master.logo_img, bg=bg_color)
     logo_label.image = master.logo_img  # Keep a reference
     logo_label.place(relx=0.5, rely=0.1, anchor="center")
-
-
-
-
-
 
 
 if __name__ == "__main__":

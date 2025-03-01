@@ -57,10 +57,11 @@ class Engine:
 
         #1. Decode the image for encrpyted data.
         self.crypto.cipher_text = stegano.extract_data_adaptive(stego_image_path)
+        print(self.crypto.cipher_text)
 
         #2. Decrypt the extracted data.
         self.crypto.plaintext = self.crypto.decryption_message(self.crypto.ciphertext, self.key_received, self.received_tag)
-
+        print(self.crypto.plaintext)
 
 
 

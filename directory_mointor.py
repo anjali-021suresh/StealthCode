@@ -31,6 +31,7 @@ class FileAddHandler(FileSystemEventHandler):
             print(f"[+] New file detected: {event.src_path}")
             # Wait for the file to be fully written before triggering the callback
             self.wait_for_file_completion(event.src_path)
+            print("Calling Decrption call Back")
             self.decryption_callback(event.src_path)
 
     def wait_for_file_completion(self, file_path, timeout=10, check_interval=0.5):
