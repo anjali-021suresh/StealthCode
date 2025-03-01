@@ -77,7 +77,9 @@ class Networking:
         except Exception as e:
             print(f"[-] Error receiving file: {e}")
         finally:
+            # Ensure the connection is always closed
             conn.close()
+            print("[+] Connection closed.")
 
     def stop_server(self):
         """Stop the file transfer server."""

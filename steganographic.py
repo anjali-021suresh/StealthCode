@@ -95,8 +95,6 @@ def extract_data_adaptive(stego_image_path:str):
 
     if not os.path.exists(stego_image_path):
             print("Image not found.")
-            time.sleep(15)
-
 
 
     image = cv2.imread(stego_image_path)
