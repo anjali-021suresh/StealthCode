@@ -17,7 +17,7 @@ class Networking:
         self.server_socket = None
         self.is_running = False
 
-    def extract_address(self, file_path="\etc\wireguard\wg0.conf"):
+    def extract_address(self, file_path="/etc/wireguard/wg0.conf"):
         """
         Extracts the 'Address' value from a WireGuard configuration file.
 
