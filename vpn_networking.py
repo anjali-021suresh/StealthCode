@@ -13,9 +13,12 @@ BUFFER_SIZE = 4096
 
 def file_test_config():
 
-    if not os.path.exists("/etc/wireguard/wg0.conf"):
-        print("[ERROR] Config file not found.")
-        return False
+    if os.path.exists("/etc/wireguard/wg0.conf"):
+        print("[+] File exists not found.")
+        return True
+    else:
+        print("[ERROR] File not found.")
+        return True
 
 
 

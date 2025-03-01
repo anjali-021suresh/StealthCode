@@ -44,7 +44,7 @@ class Networking:
         return None
 
     def start_server(self):
-        """Start the file transfer server."""
+        """Continuously listen for client connections."""
         logger.info("Starting server...")
         try:
             os.makedirs(self.SAVE_PATH, exist_ok=True)
@@ -56,26 +56,25 @@ class Networking:
                 logger.info(f"Server listening on {self.HOST_IP}:{self.LISTEN_PORT}")
 
                 while self.is_running:
-                    try:
-                        conn, addr = server_socket.accept()
-                        logger.info(f"Connection established with {addr}")
-                        self.handle_client(conn)
-                    except socket.error as e:
-                        if self.is_running:
-                            logger.error(f"Server error: {e}")
+                    conn, addr = server_socket.accept()
+                    logger.info(f"Connection established with {addr}")
+                    self.handle_client(conn)
+
         except Exception as e:
             logger.error(f"Failed to start server: {e}")
         finally:
             self.stop_server()
 
+
     def handle_client(self, conn):
-        """Handle incoming client connections."""
+        """Handle incoming client connections and allow multiple files."""
         try:
             while True:
                 # Receive file name and size
                 header_data = conn.recv(self.BUFFER_SIZE).decode("utf-8")
                 if not header_data:
-                    break  # No more files to receive
+                    logger.info("No more data received. Closing connection.")
+                    break  # Exit loop if no more files are sent
 
                 file_name, file_size = header_data.split("|")
                 file_size = int(file_size)
@@ -94,21 +93,20 @@ class Networking:
                             break
                         file.write(data)
                         total_received += len(data)
-                        logger.info(f"Received {total_received} bytes so far...")
-
-                logger.info(f"File received successfully: {save_path}")
-                logger.info(f"Total bytes received: {total_received}")
+                        logger.info(f"Received {total_received}/{file_size} bytes...")
 
                 # Verify file integrity
                 if total_received == file_size:
-                    logger.info("File integrity verified.")
+                    logger.info(f"File {file_name} received successfully. Integrity verified.")
                 else:
-                    logger.warning(f"File integrity check failed. Expected {file_size} bytes, received {total_received} bytes.")
+                    logger.warning(f"File {file_name} integrity check failed!")
+
         except Exception as e:
             logger.error(f"Error receiving file: {e}")
         finally:
             conn.close()
             logger.info("Connection closed.")
+
 
     def receive_file_name(self, conn):
         """Receive and decode the file name from the client."""
@@ -147,33 +145,34 @@ class Networking:
             self.server_socket = None
         logger.info("Server stopped.")
 
-    def send_file(self, file_path, dest_ip):
-        """Send a file to the specified destination IP."""
-        if not os.path.isfile(file_path):
-            logger.error(f"File not found: {file_path}")
-            return
-
-        file_name = os.path.basename(file_path)
-        file_size = os.path.getsize(file_path)
-        logger.info(f"Sending file: {file_name} (Size: {file_size} bytes)")
-        logger.info(f"Connecting to server at {dest_ip}:{self.LISTEN_PORT}")
+    def send_files(self, file_paths, dest_ip):
+        """Send multiple files in one connection."""
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
                 client_socket.connect((dest_ip, self.LISTEN_PORT))
-                logger.info("Connected to server")
+                logger.info(f"Connected to server at {dest_ip}:{self.LISTEN_PORT}")
 
-                # Send file name and size
-                header = f"{file_name}|{file_size}"
-                client_socket.send(header.encode("utf-8"))
+                for file_path in file_paths:
+                    if not os.path.isfile(file_path):
+                        logger.error(f"File not found: {file_path}")
+                        continue
 
-                # Send file data
-                total_sent = 0
-                with open(file_path, "rb") as file:
-                    while chunk := file.read(self.BUFFER_SIZE):
-                        client_socket.send(chunk)
-                        total_sent += len(chunk)
-                        logger.info(f"Sent {total_sent} bytes so far...")
+                    file_name = os.path.basename(file_path)
+                    file_size = os.path.getsize(file_path)
+                    logger.info(f"Sending file: {file_name} (Size: {file_size} bytes)")
 
-                logger.info(f"File {file_name} sent successfully!")
+                    # Send file header
+                    header = f"{file_name}|{file_size}"
+                    client_socket.send(header.encode("utf-8"))
+
+                    # Send file data
+                    total_sent = 0
+                    with open(file_path, "rb") as file:
+                        while chunk := file.read(self.BUFFER_SIZE):
+                            client_socket.send(chunk)
+                            total_sent += len(chunk)
+                            logger.info(f"Sent {total_sent}/{file_size} bytes...")
+
+                logger.info("All files sent successfully!")
         except Exception as e:
-            logger.error(f"Error sending file: {e}")
+            logger.error(f"Error sending files: {e}")
