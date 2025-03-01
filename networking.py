@@ -1,6 +1,7 @@
 import os
 import socket
 from datetime import datetime
+import vpn_networking
 
 LISTENING_PORT = 5001
 BUFFER_SIZE = 4096
@@ -10,7 +11,7 @@ class Networking:
 
     def __init__(self):
         self.LISTEN_PORT = LISTENING_PORT
-        self.HOST_IP = "10.10.0.2"  # Bind to all available interfaces
+        self.HOST_IP = vpn_networking.get_wireguard_ip()  # Bind to all available interfaces
         self.BUFFER_SIZE = BUFFER_SIZE
         self.SAVE_PATH = "received_files"  # Directory to save received files
         self.server_socket = None
