@@ -70,49 +70,59 @@ class Networking:
     def handle_client(self, conn):
         """Handle incoming client connections."""
         try:
-            # Receive file name
-            file_name_data = conn.recv(self.BUFFER_SIZE)
-            try:
-                file_name = file_name_data.decode("utf-8").strip()
-            except UnicodeDecodeError:
-                print("[-] Invalid file name received (not UTF-8). Using default name.")
-                file_name = "received_file"
+            while True:
+                # Receive file name
+                file_name_data = conn.recv(self.BUFFER_SIZE)
+                if not file_name_data:
+                    break  # Connection closed by client
 
-            print(f"[+] Receiving file: {file_name}")
+                try:
+                    file_name = file_name_data.decode("utf-8").strip()
+                except UnicodeDecodeError:
+                    print("[-] Invalid file name received (not UTF-8). Using default name.")
+                    file_name = "received_file"
 
-            # Determine file type
-            file_type = os.path.splitext(file_name)[1].lower()
+                print(f"[+] Receiving file: {file_name}")
 
-            # Initialize save_path
-            save_path = ""
+                # Determine file type
+                file_type = os.path.splitext(file_name)[1].lower()
 
-            if file_type == ".json":
-                save_path = f"/tmp/{file_name}"
-            else:
-                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                save_path = os.path.join(self.SAVE_PATH, f"{timestamp}_{file_name}")
+                # Initialize save_path
+                save_path = ""
 
-            # Save the file
-            received_bytes = 0
-            with open(save_path, "wb") as file:
-                while True:
-                    data = conn.recv(self.BUFFER_SIZE)
-                    if not data:
-                        break
-                    file.write(data)
-                    received_bytes += len(data)
-
-            print(f"[+] File received successfully: {save_path}")
-            print(f"[+] Received file size: {received_bytes} bytes")
-
-            # Verify file integrity using checksum
-            if file_type != ".json":
-                sender_checksum = conn.recv(self.BUFFER_SIZE).decode("utf-8").strip()
-                receiver_checksum = self.calculate_checksum(save_path)
-                if sender_checksum == receiver_checksum:
-                    print("[+] File integrity verified: Checksums match!")
+                if file_type == ".json":
+                    save_path = f"/tmp/{file_name}"
                 else:
-                    print("[-] File integrity check failed: Checksums do not match!")
+                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                    save_path = os.path.join(self.SAVE_PATH, f"{timestamp}_{file_name}")
+
+                # Save the file
+                received_bytes = 0
+                with open(save_path, "wb") as file:
+                    while True:
+                        data = conn.recv(self.BUFFER_SIZE)
+                        if data.endswith(b"<EOF>"):
+                            # Remove the end-of-file marker and write the remaining data
+                            file.write(data[:-5])
+                            received_bytes += len(data) - 5
+                            break
+                        file.write(data)
+                        received_bytes += len(data)
+
+                print(f"[+] File received successfully: {save_path}")
+                print(f"[+] Received file size: {received_bytes} bytes")
+
+                # Verify file integrity using checksum
+                if file_type != ".json":
+                    sender_checksum = conn.recv(self.BUFFER_SIZE).decode("utf-8").strip()
+                    receiver_checksum = self.calculate_checksum(save_path)
+                    if sender_checksum == receiver_checksum:
+                        print("[+] File integrity verified: Checksums match!")
+                    else:
+                        print("[-] File integrity check failed: Checksums do not match!")
+
+                # Send acknowledgment to the sender
+                conn.send(b"ACK")
         except Exception as e:
             print(f"[-] Error receiving file: {e}")
         finally:
@@ -129,48 +139,52 @@ class Networking:
             self.server_socket = None
         print("[*] Server stopped.")
 
-    def send_file(self, file_path, dest_ip):
-        """Send a file to the specified destination IP."""
-        if not os.path.isfile(file_path):
-            print(f"[-] File not found: {file_path}")
+    def send_file(self, file_paths, dest_ip):
+        """
+        Send multiple files to the specified destination IP.
+
+        Args:
+            file_paths (list): List of file paths to send.
+            dest_ip (str): Destination IP address.
+        """
+        if not all(os.path.isfile(file_path) for file_path in file_paths):
+            print("[-] One or more files not found.")
             return
 
-        file_name = os.path.basename(file_path)
         print(f"[*] Connecting to server at {dest_ip}:{self.LISTEN_PORT}")
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
                 client_socket.connect((dest_ip, self.LISTEN_PORT))
                 print("[+] Connected to server")
 
-                # Send file name
-                client_socket.send(file_name.encode("utf-8"))
+                for file_path in file_paths:
+                    file_name = os.path.basename(file_path)
+                    print(f"[*] Sending file: {file_name}")
 
-                # Send file data with retransmission
-                total_sent = 0
-                sequence_number = 0
-                with open(file_path, "rb") as file:
-                    while chunk := file.read(self.BUFFER_SIZE):
-                        packet = sequence_number.to_bytes(4, "big") + chunk
-                        client_socket.send(packet)
-                        total_sent += len(chunk)
+                    # Send file name
+                    client_socket.send(file_name.encode("utf-8"))
 
-                        # Wait for acknowledgment
-                        ack = client_socket.recv(4)
-                        if int.from_bytes(ack, "big") != sequence_number:
-                            print(f"[-] Packet {sequence_number} lost. Retransmitting...")
-                            continue
+                    # Send file data
+                    total_sent = 0
+                    with open(file_path, "rb") as file:
+                        while chunk := file.read(self.BUFFER_SIZE):
+                            client_socket.send(chunk)
+                            total_sent += len(chunk)
 
-                        sequence_number += 1
+                    # Send end-of-file marker
+                    client_socket.send(b"<EOF>")
+                    print(f"[+] File {file_name} sent successfully!")
+                    print(f"[+] Total bytes sent: {total_sent} bytes")
 
-                print(f"[+] File {file_name} sent successfully!")
-                print(f"[+] Total bytes sent: {total_sent} bytes")
+                    # Wait for acknowledgment from the receiver
+                    ack = client_socket.recv(3)
+                    if ack != b"ACK":
+                        print(f"[-] Acknowledgment not received for {file_name}.")
+                        return
 
-                # Send checksum for verification
-                if not file_name.endswith(".json"):
-                    checksum = self.calculate_checksum(file_path)
-                    client_socket.send(checksum.encode("utf-8"))
+                print("[+] All files sent successfully!")
         except Exception as e:
-            print(f"[-] Error sending file: {e}")
+            print(f"[-] Error sending files: {e}")
 
     def calculate_checksum(self, file_path):
         """Calculate the MD5 checksum of a file."""
