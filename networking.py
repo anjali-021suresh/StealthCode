@@ -71,8 +71,15 @@ class Networking:
         """Handle incoming client connections."""
         try:
             while True:
+                # Receive file name length
+                file_name_len_data = conn.recv(4)
+                if not file_name_len_data:
+                    break  # Connection closed by client
+
+                file_name_len = int.from_bytes(file_name_len_data, "big")
+
                 # Receive file name
-                file_name_data = conn.recv(self.BUFFER_SIZE)
+                file_name_data = conn.recv(file_name_len)
                 if not file_name_data:
                     break  # Connection closed by client
 
@@ -115,7 +122,6 @@ class Networking:
             # Ensure the connection is always closed
             conn.close()
             print("[+] Connection closed.")
-
     def stop_server(self):
         """Stop the file transfer server."""
         print("[*] Stopping server...")
@@ -147,6 +153,10 @@ class Networking:
                     file_name = os.path.basename(file_path)
                     print(f"[*] Sending file: {file_name}")
 
+                    # Send file name length
+                    file_name_len = len(file_name)
+                    client_socket.send(file_name_len.to_bytes(4, "big"))
+
                     # Send file name
                     client_socket.send(file_name.encode("utf-8"))
 
@@ -172,5 +182,3 @@ class Networking:
                 print("[+] All files sent successfully!")
         except Exception as e:
             print(f"[-] Error sending files: {e}")
-
-
