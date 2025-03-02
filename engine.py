@@ -42,7 +42,7 @@ class Engine:
         stegano.embed_data_adaptive(image_path, self.crypto.ciphertext, timestamped_file_name)
 
 
-        print("ciphertext, tag, transmission_key: ",self.crypto.ciphertext, self.crypto.tag, self.crypto.transmission_key)
+        print(f"ciphertext: {self.crypto.ciphertext}, tag: {self.crypto.tag}, transmission_key: {self.crypto.transmission_key}")
         return timestamped_file_name, self.crypto.transmission_key, self.crypto.tag
 
 
@@ -62,7 +62,7 @@ class Engine:
         time.sleep(15)
         self.crypto.ciphertext = stegano.extract_data_adaptive(stego_image_path)
 
-        print("ciphertext, tag, transmission_key: ",self.crypto.ciphertext, self.crypto.tag, self.crypto.transmission_key)
+        print(f"ciphertext: {self.crypto.ciphertext}, tag: {self.received_tag}, transmission_key: {self.key_received}")
 
         #2. Decrypt the extracted data.
         self.crypto.plaintext = self.crypto.decryption_message(self.crypto.ciphertext, self.key_received, self.received_tag)
