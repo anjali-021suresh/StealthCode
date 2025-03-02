@@ -3,6 +3,7 @@ import steganographic as stegano
 from cryptographic import CryptographicFunctions
 import datetime
 import json
+import time
 import base64
 
 
@@ -38,6 +39,7 @@ class Engine:
             os.makedirs(base_dir)
         # Append the timestamp to the file name
         timestamped_file_name = f"{timestamp}_stegano_image.png"
+        print(self.crypto.ciphertext)
         stegano.embed_data_adaptive(image_path, self.crypto.ciphertext, timestamped_file_name)
 
         return timestamped_file_name, self.crypto.transmission_key, self.crypto.tag
@@ -45,7 +47,7 @@ class Engine:
 
     def extract_data(self, stego_image_path:str) -> str:
 
-    
+        
         data = {}
         with open("received_files/key.json", "r", encoding="utf-8") as file:
             data = json.load(file)  
@@ -56,6 +58,7 @@ class Engine:
         self.key_received, self.received_tag = transmission_key, tag
 
         #1. Decode the image for encrpyted data.
+        time.sleep(15)
         self.crypto.cipher_text = stegano.extract_data_adaptive(stego_image_path)
         print(self.crypto.cipher_text)
 
