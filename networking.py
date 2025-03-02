@@ -2,9 +2,10 @@ import os
 import socket
 from datetime import datetime
 import vpn_networking
+import hashlib
 
 LISTENING_PORT = 5001
-BUFFER_SIZE = 4096
+BUFFER_SIZE = 65536  # Increased buffer size for larger files
 
 class Networking:
     """Handles file transfer over the network."""
@@ -42,7 +43,6 @@ class Networking:
             print(f"[-] Error reading file: {e}")
 
         return None
-
 
     def start_server(self):
         """Start the file transfer server."""
@@ -94,14 +94,26 @@ class Networking:
                 save_path = os.path.join(self.SAVE_PATH, f"{timestamp}_{file_name}")
 
             # Save the file
+            received_bytes = 0
             with open(save_path, "wb") as file:
                 while True:
                     data = conn.recv(self.BUFFER_SIZE)
                     if not data:
                         break
                     file.write(data)
+                    received_bytes += len(data)
 
             print(f"[+] File received successfully: {save_path}")
+            print(f"[+] Received file size: {received_bytes} bytes")
+
+            # Verify file integrity using checksum
+            if file_type != ".json":
+                sender_checksum = conn.recv(self.BUFFER_SIZE).decode("utf-8").strip()
+                receiver_checksum = self.calculate_checksum(save_path)
+                if sender_checksum == receiver_checksum:
+                    print("[+] File integrity verified: Checksums match!")
+                else:
+                    print("[-] File integrity check failed: Checksums do not match!")
         except Exception as e:
             print(f"[-] Error receiving file: {e}")
         finally:
@@ -131,12 +143,31 @@ class Networking:
                 client_socket.connect((dest_ip, self.LISTEN_PORT))
                 print("[+] Connected to server")
 
+                # Send file name
                 client_socket.send(file_name.encode("utf-8"))
+
+                # Send file data
+                total_sent = 0
                 with open(file_path, "rb") as file:
                     while chunk := file.read(self.BUFFER_SIZE):
                         client_socket.send(chunk)
+                        total_sent += len(chunk)
 
                 print(f"[+] File {file_name} sent successfully!")
+                print(f"[+] Total bytes sent: {total_sent}")
+
+                # Send checksum for verification
+                if not file_name.endswith(".json"):
+                    checksum = self.calculate_checksum(file_path)
+                    client_socket.send(checksum.encode("utf-8"))
         except Exception as e:
             print(f"[-] Error sending file: {e}")
+
+    def calculate_checksum(self, file_path):
+        """Calculate the MD5 checksum of a file."""
+        hash_md5 = hashlib.md5()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
 
