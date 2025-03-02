@@ -1,7 +1,7 @@
 import os
 import socket
+import sys
 from datetime import datetime
-import hashlib
 
 LISTENING_PORT = 5001
 BUFFER_SIZE = 8192  # Smaller buffer size to reduce packet loss
@@ -84,42 +84,28 @@ class Networking:
 
                 print(f"[+] Receiving file: {file_name}")
 
-                # Determine file type
-                file_type = os.path.splitext(file_name)[1].lower()
-
                 # Initialize save_path
-                save_path = ""
-
-                if file_type == ".json":
-                    save_path = f"/tmp/{file_name}"
-                else:
-                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-                    save_path = os.path.join(self.SAVE_PATH, f"{timestamp}_{file_name}")
+                save_path = os.path.join(self.SAVE_PATH, file_name)
 
                 # Save the file
                 received_bytes = 0
                 with open(save_path, "wb") as file:
                     while True:
                         data = conn.recv(self.BUFFER_SIZE)
+                        if not data:
+                            break  # Connection closed by client
+
+                        # Check for end-of-file marker
                         if data.endswith(b"<EOF>"):
-                            # Remove the end-of-file marker and write the remaining data
-                            file.write(data[:-5])
+                            file.write(data[:-5])  # Write data without the marker
                             received_bytes += len(data) - 5
                             break
                         file.write(data)
                         received_bytes += len(data)
+                        print(f"[+] Received chunk size: {len(data)} bytes")
 
                 print(f"[+] File received successfully: {save_path}")
                 print(f"[+] Received file size: {received_bytes} bytes")
-
-                # Verify file integrity using checksum
-                if file_type != ".json":
-                    sender_checksum = conn.recv(self.BUFFER_SIZE).decode("utf-8").strip()
-                    receiver_checksum = self.calculate_checksum(save_path)
-                    if sender_checksum == receiver_checksum:
-                        print("[+] File integrity verified: Checksums match!")
-                    else:
-                        print("[-] File integrity check failed: Checksums do not match!")
 
                 # Send acknowledgment to the sender
                 conn.send(b"ACK")
@@ -170,6 +156,7 @@ class Networking:
                         while chunk := file.read(self.BUFFER_SIZE):
                             client_socket.send(chunk)
                             total_sent += len(chunk)
+                            print(f"[+] Sent chunk size: {len(chunk)} bytes")
 
                     # Send end-of-file marker
                     client_socket.send(b"<EOF>")
@@ -186,10 +173,4 @@ class Networking:
         except Exception as e:
             print(f"[-] Error sending files: {e}")
 
-    def calculate_checksum(self, file_path):
-        """Calculate the MD5 checksum of a file."""
-        hash_md5 = hashlib.md5()
-        with open(file_path, "rb") as f:
-            for chunk in iter(lambda: f.read(4096), b""):
-                hash_md5.update(chunk)
-        return hash_md5.hexdigest()
+
