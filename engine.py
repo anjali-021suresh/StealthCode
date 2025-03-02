@@ -48,7 +48,7 @@ class Engine:
 
     def extract_data(self, stego_image_path:str) -> str:
 
-        
+        time.sleep(15)
         data = {}
         with open("received_files/key.json", "r", encoding="utf-8") as file:
             data = json.load(file)  
@@ -59,7 +59,7 @@ class Engine:
         self.key_received, self.received_tag = transmission_key, tag
 
         #1. Decode the image for encrpyted data.
-        time.sleep(15)
+        # time.sleep(15)
         self.crypto.ciphertext = stegano.extract_data_adaptive(stego_image_path)
 
         print(f"ciphertext: {self.crypto.ciphertext}, tag: {self.received_tag}, transmission_key: {self.key_received}")
