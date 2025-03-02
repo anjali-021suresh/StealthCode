@@ -47,7 +47,7 @@ class Engine:
 
     
         data = {}
-        with open("/tmp/key.json", "r", encoding="utf-8") as file:
+        with open("received_files/key.json", "r", encoding="utf-8") as file:
             data = json.load(file)  
 
         transmission_key = base64.b64decode(data["transmission_key"])
