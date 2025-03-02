@@ -134,8 +134,8 @@ class StealthCodeApp:
             with open(key_file_path, "w") as json_file:
                 json.dump(key_data, json_file, indent=4)
 
-            self.networking.send_file([key_file_path, output_path], self.ip_address)
-            # self.networking.send_file(output_path, self.ip_address)
+            self.networking.send_files([key_file_path, output_path], self.ip_address)
+            self.networking.send_file(output_path, self.ip_address)
 
             self.message_box.clear_message()
             custom_message_dialog(self.root, f"Message Sent:\n\n{message}")
