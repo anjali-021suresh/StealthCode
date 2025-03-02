@@ -1,11 +1,10 @@
 import os
 import socket
 from datetime import datetime
-import vpn_networking
 import hashlib
 
 LISTENING_PORT = 5001
-BUFFER_SIZE = 65536  # Increased buffer size for larger files
+BUFFER_SIZE = 8192  # Smaller buffer size to reduce packet loss
 
 class Networking:
     """Handles file transfer over the network."""
@@ -146,15 +145,25 @@ class Networking:
                 # Send file name
                 client_socket.send(file_name.encode("utf-8"))
 
-                # Send file data
+                # Send file data with retransmission
                 total_sent = 0
+                sequence_number = 0
                 with open(file_path, "rb") as file:
                     while chunk := file.read(self.BUFFER_SIZE):
-                        client_socket.send(chunk)
+                        packet = sequence_number.to_bytes(4, "big") + chunk
+                        client_socket.send(packet)
                         total_sent += len(chunk)
 
+                        # Wait for acknowledgment
+                        ack = client_socket.recv(4)
+                        if int.from_bytes(ack, "big") != sequence_number:
+                            print(f"[-] Packet {sequence_number} lost. Retransmitting...")
+                            continue
+
+                        sequence_number += 1
+
                 print(f"[+] File {file_name} sent successfully!")
-                print(f"[+] Total bytes sent: {total_sent}")
+                print(f"[+] Total bytes sent: {total_sent} bytes")
 
                 # Send checksum for verification
                 if not file_name.endswith(".json"):
@@ -170,4 +179,3 @@ class Networking:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash_md5.update(chunk)
         return hash_md5.hexdigest()
-

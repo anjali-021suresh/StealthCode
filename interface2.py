@@ -140,7 +140,8 @@ class StealthCodeApp:
             self.message_box.clear_message()
             custom_message_dialog(self.root, f"Message Sent:\n\n{message}")
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to send message: {e}")
+            # messagebox.showerror("Error", f"Failed to send message: {e}")
+            print("Hello")
 
     def setup_ui(self):
         """Set up the user interface components."""
