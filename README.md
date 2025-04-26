@@ -1,5 +1,5 @@
 
-![StealthCodeLogo](docs/images/system_architecture.png)
+![StealthCodeLogo](docs/images/logo.png)
 
 
 # StealthCode: Advanced Military-Grade Communication Tool
