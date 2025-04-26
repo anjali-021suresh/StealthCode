@@ -24,8 +24,6 @@ def embed_data_adaptive(image_path:str, encrypted_message:bytes, output_path:str
         image_path: path of the image where data to be embedded.
         encrypted_message: the message to be embedded.
         output_path: image path where to save the image.
-
-
     """
     # Load image in RGB (BGR in OpenCV)
     image = cv2.imread(image_path)

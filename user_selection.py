@@ -8,7 +8,7 @@ from PIL import Image, ImageTk, ImageFont, ImageDraw
 import argparse
 import os
 import sys
-import interface2
+import interface
 import shutil
 
 
@@ -132,7 +132,7 @@ class StealthCodeApp:
                 self.root.destroy()
 
                 # Start StealthCodeApp from interface2
-                init = interface2.StealthCodeApp(self.current_user, receiver_name, receiver_ip)
+                init = interface.StealthCodeApp(self.current_user, receiver_name, receiver_ip)
                 init.run()  # Run the second app's GUI in the same thread (blocking)
             else:
                 print("[+]Asking user to select a config file...")
@@ -141,7 +141,7 @@ class StealthCodeApp:
                 if self.SELECTED_WG0_CONF:
                     try:
                         self.root.destroy()
-                        init = interface2.StealthCodeApp(self.current_user, receiver_name, receiver_ip)
+                        init = interface.StealthCodeApp(self.current_user, receiver_name, receiver_ip)
                         init.run()  # Start the second app
                     except subprocess.CalledProcessError as e:
                         print(f"[ERROR] Failed to move config or start interface: {e}")

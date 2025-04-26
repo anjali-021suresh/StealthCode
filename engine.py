@@ -23,7 +23,7 @@ class Engine:
 
 
     def hide_data(self, payload_data:str, image_path:str, receiver_public_key) -> str:
-
+        self.crypto.key_generation(receiver_public_key)
 
         # print(self.crypto.privatekey)
 
@@ -48,7 +48,7 @@ class Engine:
 
     def extract_data(self, stego_image_path:str) -> str:
 
-        time.sleep(15)
+        time.sleep(40) # adjustments needed
         data = {}
         with open("received_files/key.json", "r", encoding="utf-8") as file:
             data = json.load(file)  
