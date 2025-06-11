@@ -6,7 +6,7 @@ from datetime import datetime
 import base64
 
 # URL for the Flask server
-URL = "http://34.60.27.56:5000"
+URL = "<URL_SERVER>"
 LISTENING_PORT = 5001
 BUFFER_SIZE = 4096
 
@@ -157,4 +157,3 @@ def send_public_key(public_key, username):
         print(f"Public key update failed! Error: {e}")
         return False
     
-    # vpn_server_connection()

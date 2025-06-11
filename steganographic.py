@@ -138,24 +138,3 @@ def extract_data_adaptive(stego_image_path:str):
 
     return bytes(byte_array)
 
-
-# Example Workflow
-# embed_data_adaptive(
-#     "/home/abhipnair/abhipnair@pikachu/Projects.abhipnair@pikachu/StealthCode/StealthCode/123.png",
-#     b'\x19\x8b\n2\xaf\xc6e\xf9\xcfSO\xf6\xe8]\xe58\xbdZ\xa5\xef\xf8\xc4\x16Z\x05\xc8\xdd\xfa',
-#     "stegoimage.png"
-# )
-
-
-
-# extracted_data = extract_data_adaptive("stegoimage.png")
-# if extracted_data:
-#     print("Extracted Data:", extracted_data)
-#     if b'\x19\x8b\n2\xaf\xc6e\xf9\xcfSO\xf6\xe8]\xe58\xbdZ\xa5\xef\xf8\xc4\x16Z\x05\xc8\xdd\xfa' == extracted_data:
-#         print("hello")
-
-
-# Differences and Robustness Metrics
-# calculate_difference("/home/abhipnair/Mini_Project/123.png", "stegoimage.png")
-# calculate_difference_percentage("/home/abhipnair/Mini_Project/123.png", "stegoimage.png")
-# calculate_psnr("/home/abhipnair/Mini_Project/123.png", "stegoimage.png")

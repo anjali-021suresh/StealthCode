@@ -59,7 +59,7 @@ class Engine:
         self.key_received, self.received_tag = transmission_key, tag
 
         #1. Decode the image for encrpyted data.
-        # time.sleep(15)
+        time.sleep(5)
         self.crypto.ciphertext = stegano.extract_data_adaptive(stego_image_path)
 
         print(f"ciphertext: {self.crypto.ciphertext}, tag: {self.received_tag}, transmission_key: {self.key_received}")
@@ -71,7 +71,6 @@ class Engine:
 
 
 
-        # return self.crypto.plaintext
 
 
 

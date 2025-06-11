@@ -128,7 +128,7 @@ class StealthCodeApp:
         if receiver_ip:
             print("[+] Connecting to the VPN server...")
             if vpn_networking.file_test_config():
-                # print("[+] VPN connection established.")
+                print("[+] VPN connection established.")
                 self.root.destroy()
 
                 # Start StealthCodeApp from interface2
@@ -177,7 +177,6 @@ class StealthCodeApp:
                 dialog.destroy()
                 shutil.move(self.SELECTED_WG0_CONF, "/etc/wireguard/wg0.conf")
                 print(f"File moved to {"/etc/wireguard/wg0.conf"}")
-                # vpn_networking.vpn_server_connection()
             else:
                 messagebox.showwarning("File Required", "You must select a valid file to proceed!")
 

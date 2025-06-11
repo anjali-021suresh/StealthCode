@@ -137,13 +137,12 @@ class StealthCodeApp:
             print(key_file_path)
             print(output_path)
             self.networking.send_file([key_file_path, output_path], self.ip_address)
-            # self.networking.send_file(output_path, self.ip_address)
 
             self.message_box.clear_message()
             custom_message_dialog(self.root, "Message", f"Message Sent:\n\n{message}")
         except Exception as e:
-            # messagebox.showerror("Error", f"Failed to send message: {e}")
-            print("Hello")
+            messagebox.showerror("Error", f"Failed to send message: {e}")
+
 
     def setup_ui(self):
         """Set up the user interface components."""

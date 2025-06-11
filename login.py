@@ -76,11 +76,6 @@ def login():
 
         # Improved subprocess handling
         try:
-            # result = subprocess.run(
-            #     shlex.split(f"python3 user_selection.py --users \"{users_arg}\" --current-user \"{username}\""),
-            #     capture_output=True, text=True, check=True
-            # )
-            # print("Subprocess Output:", result.stdout)
             inint = user_selection.StealthCodeApp(users, username)
             inint.run()
 

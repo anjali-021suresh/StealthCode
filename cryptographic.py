@@ -68,8 +68,6 @@ class CryptographicFunctions:
             self:
         """
 
-        # if self.encryption_key is None:
-        #     raise ValueError("Encryption key has not been derived yet.")
         self.mainkey = self.key_prep()
         chacha = ChaCha20Poly1305(self.mainkey)
         self.ciphertext = chacha.encrypt(self.tag, self.payload.encode(), None)
