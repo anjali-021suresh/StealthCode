@@ -1,8 +1,5 @@
-
-![StealthCodeLogo](docs/images/logo.png)
-
-
 # StealthCode: Advanced Military-Grade Communication Tool
+![StealthCodeLogo](docs/images/logo.png)
 ## 📜 Overview
 
 **StealthCode** is an advanced secure communication tool that merges **post-quantum cryptography** with **adaptive image steganography** for ultra-secure, stealthy, and future-proof transmission of sensitive information.  
